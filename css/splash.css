@@ -2,12 +2,13 @@
 #splash {
   position: fixed;
   inset: 0;
-  background: var(--bg-deep);
+  background: radial-gradient(ellipse at 50% 30%, rgba(6,182,212,0.08) 0%, transparent 60%), var(--bg-deep);
   z-index: 9999;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0;
   transition: opacity 0.5s ease;
 }
 
@@ -16,80 +17,90 @@
   pointer-events: none;
 }
 
+/* Logo image - big, centered */
+.splash-logo-img {
+  width: 200px;
+  height: auto;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 8px 32px rgba(6,182,212,0.25));
+  animation: logoAppear 0.9s cubic-bezier(0.16,1,0.3,1) both, splashFloat 2.5s ease-in-out 0.9s infinite;
+}
+
+@keyframes logoAppear {
+  0% { opacity: 0; transform: scale(0.2) rotate(-5deg); }
+  60% { transform: scale(1.04) rotate(0.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes splashFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Pixel water drop - smaller, decorative below logo */
 .splash-water {
   display: grid;
-  grid-template-columns: repeat(8, 18px);
-  grid-template-rows: repeat(10, 18px);
-  gap: 2px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(8, 10px);
+  grid-template-rows: repeat(10, 10px);
+  gap: 1.5px;
+  margin-bottom: 20px;
   position: relative;
-  animation: splashFloat 2s ease-in-out infinite;
+  opacity: 0.5;
+  animation: dropPulse 3s ease-in-out infinite;
+}
+
+@keyframes dropPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.65; }
 }
 
 .splash-water::after {
   content: '';
   position: absolute;
-  inset: -24px -8px;
+  inset: -12px -4px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(6,182,212,0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(6,182,212,0.08) 0%, transparent 60%);
   pointer-events: none;
   z-index: -1;
 }
 
-@keyframes splashFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.splash-logo-img {
-  width: 140px;
-  height: auto;
-  margin-bottom: 16px;
-  animation: logoAppear 0.8s cubic-bezier(0.16,1,0.3,1) both, splashFloat 2s ease-in-out 0.8s infinite;
-}
-
-@keyframes logoAppear {
-  0% { opacity: 0; transform: scale(0.3); }
-  70% { transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
 @keyframes splashPixel {
   0% { opacity: 0; transform: scale(0); }
-  70% { transform: scale(1.15); }
+  70% { transform: scale(1.2); }
   100% { opacity: 1; transform: scale(1); }
 }
 
 .splash-water .pixel {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
   opacity: 0;
   transform: scale(0);
 }
 
 .splash-water .pixel.show {
-  animation: splashPixel 0.35s ease-out forwards;
+  animation: splashPixel 0.3s ease-out forwards;
 }
 
 .splash-water .pixel.c1 {
   background: var(--cyan-400);
-  box-shadow: 0 0 6px rgba(34,211,238,0.6);
+  box-shadow: 0 0 4px rgba(34,211,238,0.5);
 }
 .splash-water .pixel.c2 {
   background: var(--cyan-600);
-  box-shadow: 0 0 4px rgba(6,182,212,0.4);
+  box-shadow: 0 0 3px rgba(6,182,212,0.3);
 }
 .splash-water .pixel.c3 {
   background: var(--cyan-900);
 }
 
+/* Title */
 .splash-title {
   font-family: var(--font);
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(to right, #22d3ee 0%, #60a5fa 50%, #22d3ee 100%);
+  background: linear-gradient(135deg, #22d3ee 0%, #60a5fa 50%, #818cf8 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -103,15 +114,21 @@
 }
 
 .splash-sub {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeIn 0.6s ease 0.4s forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
 }
 
 .splash-bar {
-  width: 120px;
+  width: 140px;
   height: 3px;
   background: var(--border);
   border-radius: 3px;
@@ -120,13 +137,13 @@
 
 .splash-bar-fill {
   height: 100%;
-  background: var(--cyan-400);
+  background: linear-gradient(90deg, var(--cyan-400), var(--cyan-500));
   border-radius: 3px;
-  animation: splashLoad 1.8s ease-in-out forwards;
+  animation: splashLoad 4s ease-in-out forwards;
 }
 
 @keyframes splashLoad {
   0% { width: 0; }
-  80% { width: 100%; }
+  60% { width: 100%; }
   100% { width: 100%; }
 }

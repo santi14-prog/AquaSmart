@@ -110,7 +110,7 @@ const APP = {
       splash.addEventListener('transitionend', () => {
         if (splash.parentNode) splash.parentNode.removeChild(splash);
       }, { once: true });
-    }, 2200);
+    }, 4200);
   },
 
   _requestNotificationPermission() {
