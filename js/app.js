@@ -1204,8 +1204,6 @@ const APP = {
     this.renderChart();
     this.renderDonut();
     this.updateProfileSelect();
-    this.updateWeatherCard();
-    this.updateRecommendation();
   },
 
   // === Zones ===

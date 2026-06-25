@@ -104,18 +104,18 @@
   top: -50px;
   left: -45px;
   display: grid;
-  grid-template-columns: repeat(8, 10px);
-  grid-template-rows: repeat(10, 10px);
-  gap: 1.5px;
+  grid-template-columns: repeat(8, 7px);
+  grid-template-rows: repeat(10, 7px);
+  gap: 1px;
   animation: dropSlide 4s ease-in-out forwards;
 }
 
 @keyframes dropSlide {
-  0% { left: -45px; opacity: 0; }
+  0% { left: -35px; opacity: 0; }
   10% { opacity: 0.7; }
-  60% { left: 155px; }
+  60% { left: 165px; }
   80% { opacity: 0.7; }
-  100% { left: 190px; opacity: 0; }
+  100% { left: 195px; opacity: 0; }
 }
 
 @keyframes splashPixel {
@@ -125,8 +125,8 @@
 }
 
 .splash-water .pixel {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
   border-radius: 2px;
   opacity: 0;
   transform: scale(0);
