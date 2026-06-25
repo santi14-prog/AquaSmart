@@ -961,21 +961,27 @@ body.light .location-banner { background: rgba(6,182,212,0.04); border-color: rg
 .toast {
   position: fixed;
   bottom: 110px; left: 50%;
-  transform: translateX(-50%) translateY(120px);
+  transform: translateX(-50%);
   background: var(--bg-elevated);
   color: var(--text);
   padding: 10px 22px;
   border-radius: 50px;
   font-size: 0.82rem; font-weight: 500;
   z-index: 300;
-  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
   pointer-events: none;
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-lg);
   white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
 }
 
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.show {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0s;
+}
 
 /* === Settings === */
 .settings-panel { display: none; }
