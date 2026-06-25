@@ -1040,7 +1040,7 @@ body.light .location-banner { background: rgba(6,182,212,0.04); border-color: rg
 }
 
 /* === Settings === */
-.settings-panel { display: none; }
+.settings-panel { display: none; margin: 0 auto; }
 
 .setting-row {
   display: flex;
@@ -1615,6 +1615,7 @@ body.light .weather-recommendation { background: linear-gradient(135deg, var(--b
   .zones-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
   .schedule-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .schedule-list .empty-state { grid-column: 1 / -1; }
 
   .chart-container { margin: 16px 0; }
   #donutContainer { margin-top: 14px; }
@@ -1643,8 +1644,12 @@ body.light .weather-recommendation { background: linear-gradient(135deg, var(--b
   }
   .nav-btn { font-size: 0.68rem; max-width: none; padding: 10px 8px; }
 
-  .settings-panel { max-width: 700px; }
+  .schedule-list .empty-state { grid-column: 1 / -1; }
   .debug-section { max-height: calc(100dvh - 180px); }
+
+  .settings-panel { max-width: 700px; margin: 0 auto; }
+
+  .empty-state { max-width: 500px; margin: 0 auto; }
 
   .notif-popup { width: 360px; }
 }
