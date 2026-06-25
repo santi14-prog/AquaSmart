@@ -617,12 +617,13 @@ main {
 }
 
 .bell-icon {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   opacity: 0.4;
   transition: all var(--transition);
-  padding: 4px;
+  padding: 4px 6px;
   position: relative;
+  flex-shrink: 0;
 }
 .bell-icon:hover { opacity: 1; }
 .bell-icon.has-notif { opacity: 1; color: var(--amber-400); }
@@ -636,19 +637,27 @@ main {
 }
 
 /* Notification popup */
+@media (max-width: 1023px) {
+  .bell-wrap { position: static; }
+}
+@media (min-width: 1024px) {
+  .bell-wrap { position: relative; }
+}
 .bell-wrap { position: relative; }
 .notif-popup {
-  position: absolute;
-  top: 100%;
-  right: -8px;
-  width: 300px;
+  position: fixed;
+  top: 56px;
+  right: 8px;
+  left: 8px;
+  width: auto;
+  max-width: 360px;
   max-height: 360px;
+  margin-left: auto;
   background: var(--bg-elevated);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   z-index: 150;
-  margin-top: 8px;
   overflow: hidden;
 }
 .notif-popup-header {
@@ -1651,7 +1660,15 @@ body.light .weather-recommendation { background: linear-gradient(135deg, var(--b
 
   .empty-state { max-width: 500px; margin: 0 auto; }
 
-  .notif-popup { width: 360px; }
+  .notif-popup {
+    position: absolute;
+    top: 100%;
+    right: -8px;
+    left: auto;
+    width: 360px;
+    margin-top: 8px;
+    margin-left: 0;
+  }
 }
 @media (min-width: 480px) {
   .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
