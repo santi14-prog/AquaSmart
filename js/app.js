@@ -1245,7 +1245,6 @@ const APP = {
       return `
         <div class="zone-card ${isActive ? 'active' : ''} ${remaining > 0 ? 'running' : ''}"
              data-zone="${z.id}" draggable="true">
-          ${remaining > 0 ? '<div class="wave"></div><div class="status-dots"><span></span><span></span><span></span></div>' : ''}
           <span class="drag-handle" title="Arrastar para reordenar">&#9776;</span>
           <div class="zone-header">
             <span class="zone-name"><span class="zone-icon"></span>${z.name}</span>
@@ -1413,11 +1412,13 @@ const APP = {
   startCountdown() {
     this.intervalId = setInterval(() => {
       let anyActive = false;
+      let anyFinished = false;
       for (const zoneId of Object.keys(this.zoneTimers)) {
         if (this.zoneTimers[zoneId] > 0) {
           this.zoneTimers[zoneId]--;
           anyActive = true;
           if (this.zoneTimers[zoneId] <= 0) {
+            anyFinished = true;
             const zone = this.zones.find(z => z.id === parseInt(zoneId));
             this.activeZones.delete(parseInt(zoneId));
             if (zone) {
@@ -1430,11 +1431,36 @@ const APP = {
           }
         }
       }
-      this.renderZones();
-      this.renderDashboard();
+      if (anyFinished) {
+        this.renderZones();
+        this.renderDashboard();
+      } else {
+        this.updateTimers();
+      }
       this.updateActiveCount();
       if (!anyActive) { clearInterval(this.intervalId); this.intervalId = null; }
     }, 1000);
+  },
+
+  updateTimers() {
+    const cards = document.querySelectorAll('.zone-card');
+    cards.forEach(card => {
+      const zoneId = parseInt(card.dataset.zone);
+      const remaining = this.zoneTimers[zoneId] || 0;
+      const status = card.querySelector('.zone-status');
+      if (status) {
+        if (remaining > 0) {
+          status.textContent = remaining + 's';
+          status.className = 'zone-status running';
+          card.classList.add('active', 'running');
+        } else if (this.activeZones.has(zoneId)) {
+          status.textContent = 'LIG';
+          status.className = 'zone-status on';
+          card.classList.add('active');
+          card.classList.remove('running');
+        }
+      }
+    });
   },
 
   updateActiveCount() {
