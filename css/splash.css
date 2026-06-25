@@ -41,6 +41,19 @@
   50% { transform: translateY(-8px); }
 }
 
+.splash-logo-img {
+  width: 140px;
+  height: auto;
+  margin-bottom: 16px;
+  animation: logoAppear 0.8s cubic-bezier(0.16,1,0.3,1) both, splashFloat 2s ease-in-out 0.8s infinite;
+}
+
+@keyframes logoAppear {
+  0% { opacity: 0; transform: scale(0.3); }
+  70% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 @keyframes splashPixel {
   0% { opacity: 0; transform: scale(0); }
   70% { transform: scale(1.15); }
