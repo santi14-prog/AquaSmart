@@ -1092,11 +1092,9 @@ const APP = {
     const bell = document.getElementById('bellIcon');
     if (!bell) return;
     if (this._notifications.length > 0) {
-      bell.style.display = '';
       bell.classList.add('has-notif');
     } else {
       bell.classList.remove('has-notif');
-      bell.style.display = 'none';
     }
   },
 

@@ -619,7 +619,7 @@ main {
 .bell-icon {
   font-size: 1.1rem;
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.4;
   transition: all var(--transition);
   padding: 4px;
   position: relative;
