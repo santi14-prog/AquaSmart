@@ -32,7 +32,18 @@
         <h1>AquaSmart</h1>
       </div>
       <div class="header-right">
-        <span class="bell-icon" id="bellIcon" title="Notificacoes" style="display:none">&#128276;</span>
+        <div class="bell-wrap">
+          <span class="bell-icon" id="bellIcon" title="Notificacoes" style="display:none">&#128276;</span>
+          <div class="notif-popup" id="notifPopup" style="display:none">
+            <div class="notif-popup-header">
+              <span>Notificacoes</span>
+              <button class="btn btn-ghost btn-sm" id="clearNotifsBtn">Limpar</button>
+            </div>
+            <div class="notif-list" id="notifList">
+              <p class="empty-state" style="padding:24px">Sem notificacoes</p>
+            </div>
+          </div>
+        </div>
         <select id="profileSelect" class="profile-select" style="display:none">
           <option value="default">Perfil: Padrao</option>
         </select>

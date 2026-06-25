@@ -37,6 +37,7 @@ const APP = {
   viewForecast: null,
   viewLocationName: '',
   notifEnabled: true,
+  _notifications: [],
   sensorData: { moisture: null, timestamp: null },
 
   // === Init ===
@@ -1090,18 +1091,47 @@ const APP = {
   updateDebugBadge() {
     const bell = document.getElementById('bellIcon');
     if (!bell) return;
-    const buffer = window._LOG_BUFFER || [];
-    const errs = buffer.filter(l => l.level === 'ERR').length;
-    const warns = buffer.filter(l => l.level === 'WARN').length;
-    const count = errs + warns;
-    if (count > 0) {
+    if (this._notifications.length > 0) {
       bell.style.display = '';
       bell.classList.add('has-notif');
-      bell.title = `${errs} erros, ${warns} avisos`;
     } else {
       bell.classList.remove('has-notif');
       bell.style.display = 'none';
     }
+  },
+
+  addNotification(title, body, type) {
+    this._notifications.unshift({
+      title, body,
+      time: new Date().toLocaleTimeString('pt-PT'),
+      type: type || 'info'
+    });
+    if (this._notifications.length > 50) this._notifications = this._notifications.slice(0, 50);
+    this.updateDebugBadge();
+    this.renderNotificationPopup();
+  },
+
+  renderNotificationPopup() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    if (this._notifications.length === 0) {
+      list.innerHTML = '<p class="empty-state" style="padding:24px">Sem notificacoes</p>';
+      return;
+    }
+    const colors = { err: 'var(--red-400)', warn: 'var(--amber-400)', success: 'var(--green-400)', info: 'var(--cyan-400)' };
+    list.innerHTML = this._notifications.slice(0, 30).map(n => `
+      <div class="notif-item">
+        <div class="notif-title" style="color:${colors[n.type] || colors.info}">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    `).join('');
+  },
+
+  clearNotifications() {
+    this._notifications = [];
+    this.updateDebugBadge();
+    this.renderNotificationPopup();
   },
 
   // === Sensor ===
@@ -1336,6 +1366,7 @@ const APP = {
     await this.sendCommand(`ON:${zone.pin}:${duration}`);
     if (duration > 0 && !this.intervalId) this.startCountdown();
     this.addHistory(zone.name, 'LIGADO', duration);
+    this.addNotification(`${zone.name}`, 'Ligado ' + duration + 's', 'success');
     this.renderZones();
     this.renderDashboard();
     this.updateActiveCount();
@@ -1388,6 +1419,7 @@ const APP = {
             if (zone) {
               this.sendCommand(`OFF:${zone.pin}`);
               this.addHistory(zone.name, 'DESLIGADO (auto)', 0);
+              this.addNotification(`${zone.name}`, 'Rega terminou', 'info');
               this.showToast(`${zone.name} terminou`);
               this.notify('AquaSmart', `${zone.name} terminou a rega`);
             }
@@ -1527,6 +1559,7 @@ const APP = {
     this.zoneTimers[zoneId] = durationSeconds;
     await this.sendCommand(`ON:${zone.pin}:${durationSeconds}`);
     this.addHistory(zone.name, 'LIGADO (agendado)', durationSeconds);
+    this.addNotification(`${zone.name}`, 'Agendado ' + durationSeconds + 's', 'info');
     if (!this.intervalId) this.startCountdown();
     this.renderZones();
     this.renderDashboard();
@@ -1624,9 +1657,23 @@ const APP = {
       document.querySelector('.nav-btn[data-tab="dashboard"]').click();
     });
 
-    // Bell click -> debug tab
-    document.getElementById('bellIcon')?.addEventListener('click', () => {
-      document.querySelector('.nav-btn[data-tab="debug"]').click();
+    // Bell click -> toggle notification popup
+    document.getElementById('bellIcon')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const popup = document.getElementById('notifPopup');
+      popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+      this.renderNotificationPopup();
+    });
+
+    // Clear notifications
+    document.getElementById('clearNotifsBtn')?.addEventListener('click', () => this.clearNotifications());
+
+    // Close popup on outside click
+    document.addEventListener('click', (e) => {
+      const popup = document.getElementById('notifPopup');
+      if (popup && popup.style.display !== 'none' && !e.target.closest('.bell-wrap')) {
+        popup.style.display = 'none';
+      }
     });
 
     // WiFi
@@ -1682,12 +1729,14 @@ const APP = {
     window.addEventListener('device-connected', (e) => {
       this.updateConnectionUI();
       this.showToast(`Conectado: ${e.detail.name}`);
+      this.addNotification('Dispositivo', `Conectado via ${e.detail.name}`, 'success');
       LOG('Conectado:', e.detail.name);
     });
     window.addEventListener('device-disconnected', () => {
       this.currentConnection = null;
       this.updateConnectionUI();
       this.showToast('Dispositivo desconectado');
+      this.addNotification('Dispositivo', 'Desconectado', 'warn');
       WARN('Dispositivo desconectado');
     });
     window.addEventListener('arduino-data', (e) => {
@@ -1700,6 +1749,7 @@ const APP = {
           this.activeZones.delete(zone.id);
           this.zoneTimers[zone.id] = 0;
           this.addHistory(zone.name, 'DESLIGADO (hardware)', 0);
+          this.addNotification(`${zone.name}`, 'Hardware terminou rega', 'info');
           this.renderZones();
           this.renderDashboard();
           this.updateActiveCount();
@@ -1801,6 +1851,11 @@ const APP = {
     // Log buffer updated
     window.addEventListener('log-updated', () => {
       this.updateDebugBadge();
+      const buffer = window._LOG_BUFFER || [];
+      const last = buffer[buffer.length - 1];
+      if (last && last.level === 'ERR') {
+        this.addNotification('Erro', last.msg, 'err');
+      }
       if (document.querySelector('.debug-section')?.style.display !== 'none') {
         this.renderDebugLogs();
       }
