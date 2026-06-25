@@ -85,19 +85,19 @@ const APP = {
   // === Splash ===
   _showSplash() {
     const water = document.getElementById('splashWater');
-    // Teardrop pixel art: 8 cols x 10 rows
+    // Raindrop shape: 8 cols x 10 rows, point at top, round at bottom
     // 1=edge highlight, 2=mid body, 3=dark core
     const pixels = [
-      0,0,0,2,2,0,0,0,
+      0,0,0,1,0,0,0,0,
+      0,0,1,3,1,0,0,0,
       0,0,1,3,3,1,0,0,
+      0,1,3,3,3,3,1,0,
       0,1,3,3,3,3,1,0,
       0,1,3,3,3,3,1,0,
       1,3,3,3,3,3,3,1,
       0,1,3,3,3,3,1,0,
-      0,1,3,3,3,3,1,0,
       0,0,2,3,3,2,0,0,
-      0,0,0,2,2,0,0,0,
-      0,0,0,0,2,0,0,0
+      0,0,0,2,2,0,0,0
     ];
     water.innerHTML = pixels.map((v, i) => {
       if (v === 0) return '<div class="pixel"></div>';
