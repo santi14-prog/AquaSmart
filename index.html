@@ -145,6 +145,11 @@
 
     <!-- Weather -->
     <section class="weather-section">
+      <div id="locationBanner" class="location-banner" style="display:none">
+        <span>Localizacao nao definida</span>
+        <button class="btn btn-sm btn-primary" id="openLocationModalBtn">Definir agora</button>
+      </div>
+
       <div class="weather-search">
         <input type="text" id="weatherSearchInput" placeholder="Pesquisar cidade..." autocomplete="off">
         <div class="search-results" id="searchResults"></div>

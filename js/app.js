@@ -779,6 +779,9 @@ const APP = {
 
     if (!weather || !forecast) {
       document.getElementById('weatherLocation').textContent = locName || 'Sem localizacao';
+
+    const banner = document.getElementById('locationBanner');
+    if (banner) banner.style.display = this.hasLocation() ? 'none' : '';
       return;
     }
     document.getElementById('weatherLocation').textContent = locName || 'Localizacao';
@@ -1763,7 +1766,8 @@ const APP = {
     // Clear history
     document.getElementById('clearHistoryBtn').addEventListener('click', () => this.clearHistory());
 
-    // Clear logs
+    // Location banner re-open
+    document.getElementById('openLocationModalBtn')?.addEventListener('click', () => this._showLocationModal());
     document.getElementById('clearLogsBtn')?.addEventListener('click', () => this.clearLogs());
 
     // Profile select
