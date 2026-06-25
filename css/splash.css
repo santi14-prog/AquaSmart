@@ -18,9 +18,9 @@
 
 /* Logo - big, main focus */
 .splash-logo-img {
-  width: 200px;
+  width: 240px;
   height: auto;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   filter: drop-shadow(0 8px 32px rgba(6,182,212,0.25));
   animation: logoAppear 0.9s cubic-bezier(0.16,1,0.3,1) both, splashFloat 2.5s ease-in-out 0.9s infinite;
 }
@@ -34,24 +34,6 @@
 @keyframes splashFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
-}
-
-.splash-title {
-  font-family: var(--font);
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #22d3ee 0%, #60a5fa 50%, #818cf8 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: titleShine 3s linear infinite;
-  margin-bottom: 6px;
-}
-
-@keyframes titleShine {
-  to { background-position: 200% center; }
 }
 
 .splash-sub {
@@ -104,18 +86,20 @@
   top: -50px;
   left: -45px;
   display: grid;
-  grid-template-columns: repeat(8, 7px);
-  grid-template-rows: repeat(10, 7px);
+  grid-template-columns: repeat(8, 5px);
+  grid-template-rows: repeat(10, 5px);
   gap: 1px;
   animation: dropSlide 4s ease-in-out forwards;
+  top: -36px;
+  left: -28px;
 }
 
 @keyframes dropSlide {
-  0% { left: -35px; opacity: 0; }
+  0% { left: -28px; opacity: 0; }
   10% { opacity: 0.7; }
-  60% { left: 165px; }
+  60% { left: 172px; }
   80% { opacity: 0.7; }
-  100% { left: 195px; opacity: 0; }
+  100% { left: 200px; opacity: 0; }
 }
 
 @keyframes splashPixel {
@@ -125,9 +109,9 @@
 }
 
 .splash-water .pixel {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
   opacity: 0;
   transform: scale(0);
 }
