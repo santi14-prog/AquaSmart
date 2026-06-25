@@ -1088,18 +1088,19 @@ const APP = {
   },
 
   updateDebugBadge() {
-    const badge = document.getElementById('debugBadge');
-    if (!badge) return;
+    const bell = document.getElementById('bellIcon');
+    if (!bell) return;
     const buffer = window._LOG_BUFFER || [];
     const errs = buffer.filter(l => l.level === 'ERR').length;
     const warns = buffer.filter(l => l.level === 'WARN').length;
     const count = errs + warns;
     if (count > 0) {
-      badge.style.display = '';
-      badge.textContent = count;
-      badge.style.background = errs > 0 ? 'var(--red-500)' : 'var(--amber-400)';
+      bell.style.display = '';
+      bell.classList.add('has-notif');
+      bell.title = `${errs} erros, ${warns} avisos`;
     } else {
-      badge.style.display = 'none';
+      bell.classList.remove('has-notif');
+      bell.style.display = 'none';
     }
   },
 
@@ -1605,7 +1606,7 @@ const APP = {
     toast.textContent = msg;
     toast.classList.add('show');
     clearTimeout(this.toastTimeout);
-    this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 1200);
+    this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 800);
   },
 
   // === Events ===
@@ -1616,6 +1617,16 @@ const APP = {
       } else {
         this.showConnectionModal();
       }
+    });
+
+    // Logo click -> dashboard
+    document.getElementById('logoBtn')?.addEventListener('click', () => {
+      document.querySelector('.nav-btn[data-tab="dashboard"]').click();
+    });
+
+    // Bell click -> debug tab
+    document.getElementById('bellIcon')?.addEventListener('click', () => {
+      document.querySelector('.nav-btn[data-tab="debug"]').click();
     });
 
     // WiFi

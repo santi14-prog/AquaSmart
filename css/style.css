@@ -88,6 +88,7 @@ body.light .calendar-day { background: var(--bg-surface); }
 body.light .debug-log { background: var(--bg-surface); }
 body.light .log-entry { border-bottom-color: var(--border); }
 body.light .profile-select { background: var(--bg-surface); }
+body.light .bell-icon.has-notif { color: #d97706; }
 body.light .donut-legend-item { color: var(--text-secondary); }
 body.light .chart-tab { background: var(--bg-surface); }
 
@@ -148,6 +149,8 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .logo-icon {
@@ -613,21 +616,23 @@ main {
   background: rgba(6,182,212,0.06);
 }
 
-/* Debug badge */
-.debug-badge {
+.bell-icon {
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all var(--transition);
+  padding: 4px;
+  position: relative;
+}
+.bell-icon:hover { opacity: 1; }
+.bell-icon.has-notif { opacity: 1; color: var(--amber-400); }
+.bell-icon.has-notif::after {
+  content: '';
   position: absolute;
-  top: 2px;
-  right: 50%;
-  transform: translateX(16px);
+  top: 2px; right: 2px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
   background: var(--red-500);
-  color: #fff;
-  font-size: 0.55rem;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 8px;
-  min-width: 16px;
-  text-align: center;
-  line-height: 1.2;
 }
 
 /* Donut legend */
