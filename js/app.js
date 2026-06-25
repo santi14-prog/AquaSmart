@@ -396,6 +396,7 @@ const APP = {
     this.saveZones();
     this.renderZones();
     this.showToast(`Zona "${name}" criada`);
+    this.addNotification('Zona criada', name, 'success');
     LOG('Zona criada:', name, 'pino', pin);
   },
 
@@ -414,6 +415,7 @@ const APP = {
     this.renderDashboard();
     this.updateActiveCount();
     this.showToast(`Zona "${zone.name}" apagada`);
+    this.addNotification(`Zona apagada`, zone.name, 'warn');
     LOG('Zona apagada:', zone.name);
   },
 
@@ -753,6 +755,9 @@ const APP = {
         this.renderForecastCards();
         this.renderWeatherChart();
         this.updateRecommendation();
+        if (this.isRainyDay()) {
+          this.addNotification('Chuva prevista', `${Math.round(today.precipitaProb)}% prob em ${this.ipmaCityName}`, 'warn');
+        }
         LOG('IPMA:', this.ipmaCityName, today.tMax + '°/' + today.tMin + '°', this.getWeatherDescription(today.idWeatherType));
       }
     } catch (e) {
@@ -1401,6 +1406,7 @@ const APP = {
     this.renderDashboard();
     this.updateActiveCount();
     this.showToast('Todos os aspersores desligados');
+    this.addNotification('Paragem', 'Todas as zonas desligadas', 'warn');
     LOG('ALLOFF enviado');
   },
 
@@ -1520,6 +1526,7 @@ const APP = {
     this.renderSchedules();
     this.renderDashboard();
     LOG('Horario adicionado:', zoneId, time, duration + 'min', days);
+    this.addNotification('Horario', `Adicionado as ${time}`, 'info');
   },
   deleteSchedule(index) {
     this.schedules.splice(index, 1);
