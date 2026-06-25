@@ -392,8 +392,8 @@ main {
 }
 
 .zone-card.running {
-  border-color: rgba(6,182,212,0.5);
-  box-shadow: var(--shadow-glow);
+  border-color: rgba(6,182,212,0.6);
+  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(6,182,212,0.05);
 }
 
 .zone-card.running::after {
@@ -1080,32 +1080,78 @@ body.light .location-banner { background: rgba(6,182,212,0.04); border-color: rg
 .toggle:checked::after { transform: translateX(22px); }
 
 /* === Drop Animation on Running Zones === */
-.zone-card.running .drop-particle {
+.zone-card.running .wave {
   position: absolute;
-  width: 4px; height: 4px;
-  background: var(--cyan-400);
-  border-radius: 50%;
+  bottom: 0; left: 0; right: 0;
+  height: 32px;
   pointer-events: none;
-  opacity: 0;
+  overflow: hidden;
+  opacity: 0.25;
 }
 
-.zone-card.running .drop-particle:nth-child(1) {
-  top: 8px; right: 20px;
-  animation: dropParticle 1.2s ease-in infinite;
-}
-.zone-card.running .drop-particle:nth-child(2) {
-  top: 4px; right: 40px;
-  animation: dropParticle 1.2s ease-in 0.4s infinite;
-}
-.zone-card.running .drop-particle:nth-child(3) {
-  top: 10px; right: 30px;
-  animation: dropParticle 1.2s ease-in 0.8s infinite;
+.zone-card.running .wave::before {
+  content: '';
+  position: absolute;
+  bottom: -8px; left: -50%;
+  width: 200%;
+  height: 24px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    rgba(6,182,212,0.4) 8px,
+    rgba(34,211,238,0.6) 14px,
+    rgba(6,182,212,0.4) 20px,
+    transparent 28px
+  );
+  border-radius: 50%;
+  animation: waveFlow 2s linear infinite;
 }
 
-@keyframes dropParticle {
-  0% { opacity: 0; transform: translateY(0) scale(0.5); }
-  30% { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(18px) scale(1); }
+.zone-card.running .wave::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: -50%;
+  width: 200%;
+  height: 18px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    rgba(6,182,212,0.3) 6px,
+    rgba(34,211,238,0.5) 12px,
+    rgba(6,182,212,0.3) 18px,
+    transparent 24px
+  );
+  border-radius: 50%;
+  animation: waveFlow 1.6s linear 0.3s infinite;
+}
+
+@keyframes waveFlow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(28px); }
+}
+
+/* Status dots */
+.zone-card.running .status-dots {
+  position: absolute;
+  top: 6px; right: 12px;
+  display: flex;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.zone-card.running .status-dots span {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--green-400);
+  animation: statusDot 1s ease-in-out infinite;
+}
+
+.zone-card.running .status-dots span:nth-child(2) { animation-delay: 0.2s; }
+.zone-card.running .status-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes statusDot {
+  0%, 100% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.3; transform: translateY(-4px); }
 }
 
 /* === Stop All === */

@@ -1245,7 +1245,7 @@ const APP = {
       return `
         <div class="zone-card ${isActive ? 'active' : ''} ${remaining > 0 ? 'running' : ''}"
              data-zone="${z.id}" draggable="true">
-          ${remaining > 0 ? '<span class="drop-particle"></span><span class="drop-particle"></span><span class="drop-particle"></span>' : ''}
+          ${remaining > 0 ? '<div class="wave"></div><div class="status-dots"><span></span><span></span><span></span></div>' : ''}
           <span class="drag-handle" title="Arrastar para reordenar">&#9776;</span>
           <div class="zone-header">
             <span class="zone-name"><span class="zone-icon"></span>${z.name}</span>
