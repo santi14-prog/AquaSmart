@@ -1,0 +1,119 @@
+/* === Splash Screen === */
+#splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease;
+}
+
+#splash.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-water {
+  display: grid;
+  grid-template-columns: repeat(8, 18px);
+  grid-template-rows: repeat(10, 18px);
+  gap: 2px;
+  margin-bottom: 28px;
+  position: relative;
+  animation: splashFloat 2s ease-in-out infinite;
+}
+
+.splash-water::after {
+  content: '';
+  position: absolute;
+  inset: -24px -8px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(6,182,212,0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes splashFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes splashPixel {
+  0% { opacity: 0; transform: scale(0); }
+  70% { transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.splash-water .pixel {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  opacity: 0;
+  transform: scale(0);
+}
+
+.splash-water .pixel.show {
+  animation: splashPixel 0.35s ease-out forwards;
+}
+
+.splash-water .pixel.c1 {
+  background: var(--cyan-400);
+  box-shadow: 0 0 6px rgba(34,211,238,0.6);
+}
+.splash-water .pixel.c2 {
+  background: var(--cyan-600);
+  box-shadow: 0 0 4px rgba(6,182,212,0.4);
+}
+.splash-water .pixel.c3 {
+  background: var(--cyan-900);
+}
+
+.splash-title {
+  font-family: var(--font);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(to right, #22d3ee 0%, #60a5fa 50%, #22d3ee 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShine 3s linear infinite;
+  margin-bottom: 6px;
+}
+
+@keyframes titleShine {
+  to { background-position: 200% center; }
+}
+
+.splash-sub {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.splash-bar {
+  width: 120px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.splash-bar-fill {
+  height: 100%;
+  background: var(--cyan-400);
+  border-radius: 3px;
+  animation: splashLoad 1.8s ease-in-out forwards;
+}
+
+@keyframes splashLoad {
+  0% { width: 0; }
+  80% { width: 100%; }
+  100% { width: 100%; }
+}

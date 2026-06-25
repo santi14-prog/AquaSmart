@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#060b10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Aquasmart - Sistema Inteligente de Rega">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/splash.css?v=7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>AquaSmart</title>
+</head>
+<body>
+
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="splash-water" id="splashWater"></div>
+    <div class="splash-title">AquaSmart</div>
+    <div class="splash-sub">Sistema de Rega Inteligente</div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  </div>
+
+  <header>
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">&#128167;</div>
+        <h1>AquaSmart</h1>
+      </div>
+      <div class="header-right">
+        <select id="profileSelect" class="profile-select" style="display:none">
+          <option value="default">Perfil: Padrao</option>
+        </select>
+        <div class="connection-pill" id="connectBtn">
+          <span id="connectionStatus" class="dot off"></span>
+          <span id="connectionLabel">Desconectado</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Dashboard -->
+    <section class="dashboard-section">
+      <div class="dashboard-grid">
+        <div class="dash-card dash-next">
+          <div class="dash-label">Proxima Rega</div>
+          <div class="dash-value" id="dashNext">--:--</div>
+          <div class="dash-sub" id="dashNextZone"></div>
+        </div>
+        <div class="dash-card dash-active">
+          <div class="dash-label">Zonas Ativas</div>
+          <div class="dash-value" id="dashActive">0</div>
+          <div class="dash-sub">neste momento</div>
+        </div>
+        <div class="dash-card dash-water">
+          <div class="dash-label">Agua Hoje</div>
+          <div class="dash-value" id="dashWater">0 L</div>
+          <div class="dash-sub">estimativa</div>
+        </div>
+        <div class="dash-card dash-history">
+          <div class="dash-label">Total Regas</div>
+          <div class="dash-value" id="dashTotal">0</div>
+          <div class="dash-sub">desde sempre</div>
+        </div>
+        <div class="dash-card dash-weather">
+          <div class="dash-label">Tempo Hoje</div>
+          <div class="dash-value" id="dashWeather">--</div>
+          <div class="dash-sub" id="dashWeatherSub">sem dados</div>
+          <div class="dash-location" id="dashLocation" style="display:none"></div>
+        </div>
+        <div class="dash-card dash-cost">
+          <div class="dash-label">Custo Mes</div>
+          <div class="dash-value" id="dashCost">0,00 &euro;</div>
+          <div class="dash-sub">estimativa</div>
+        </div>
+        <div class="dash-card dash-recommend" style="grid-column:1/-1">
+          <div class="dash-label">Recomendacao</div>
+          <div class="dash-rec-text" id="dashRecText">A carregar...</div>
+          <div class="dash-rec-detail" id="dashRecDetail"></div>
+        </div>
+      </div>
+
+      <!-- Water Usage Chart -->
+      <div class="chart-container" id="chartContainer">
+        <div class="chart-header">
+          <h3>Consumo de Agua</h3>
+          <div class="chart-tabs">
+            <button class="chart-tab active" data-period="week">7 Dias</button>
+            <button class="chart-tab" data-period="month">30 Dias</button>
+            <button class="chart-tab" data-period="quarter">90 Dias</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="waterChart"></canvas></div>
+      </div>
+
+      <!-- Donut Chart by Zone -->
+      <div class="chart-container" id="donutContainer" style="margin-top:8px">
+        <div class="chart-header">
+          <h3>Agua por Zona</h3>
+        </div>
+        <div class="chart-wrap" style="min-height:200px;display:flex;align-items:center;justify-content:center">
+          <canvas id="donutChart" style="max-width:200px;max-height:200px"></canvas>
+        </div>
+      </div>
+
+      <!-- Weekly Calendar -->
+      <div class="section-header" style="margin-top:16px">
+        <h2>Calendario Semanal</h2>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+
+      <div class="section-header" style="margin-top:20px">
+        <h2>Historico Recente</h2>
+        <button class="btn btn-sm btn-outline" id="clearHistoryBtn">Limpar</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <p class="empty-state"><span class="empty-icon">&#128221;</span><br>Sem registos</p>
+      </div>
+    </section>
+
+    <!-- Zones -->
+    <section class="zones-section">
+      <div class="section-header">
+        <h2>Zonas</h2>
+        <span id="activeZonesCount" class="badge">0 ativos</span>
+      </div>
+      <div class="zones-grid" id="zonesGrid"></div>
+    </section>
+
+    <!-- Schedule -->
+    <section class="schedule-section">
+      <div class="section-header">
+        <h2>Horarios</h2>
+        <button id="addScheduleBtn" class="btn btn-sm btn-primary">+ Novo</button>
+      </div>
+      <div class="schedule-list" id="scheduleList">
+        <p class="empty-state"><span class="empty-icon">&#128197;</span><br>Nenhum horario definido</p>
+      </div>
+    </section>
+
+    <!-- Weather -->
+    <section class="weather-section">
+      <div class="weather-search">
+        <input type="text" id="weatherSearchInput" placeholder="Pesquisar cidade..." autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <div class="weather-recommendation" id="weatherRecommendation">
+        <span class="rec-icon" id="recIcon">💡</span>
+        <div>
+          <div class="rec-title" id="recTitle">Recomendacao de Rega</div>
+          <div class="rec-body" id="recBody">A analisar condicoes...</div>
+        </div>
+      </div>
+
+      <div class="weather-hero">
+        <div class="weather-location" id="weatherLocation">--</div>
+        <div class="weather-main">
+          <span class="weather-icon-large" id="weatherIconLarge">--</span>
+          <span class="weather-temp-large" id="weatherTempLarge">--°</span>
+        </div>
+        <div class="weather-desc" id="weatherDescLarge">Sem dados</div>
+        <div class="weather-details">
+          <span id="weatherPrecip">💧 -- mm</span>
+          <span id="weatherMinMax">--° / --°</span>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:16px">
+        <h2>Previsao 5 Dias</h2>
+      </div>
+      <div class="forecast-cards" id="forecastCards"></div>
+
+      <div class="chart-container" style="margin-top:16px">
+        <div class="chart-header"><h3>Temperatura e Chuva</h3></div>
+        <div class="chart-wrap" style="min-height:260px">
+          <canvas id="weatherForecastChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Debug / Logs -->
+    <section class="debug-section">
+      <div class="section-header">
+        <h2>Logs do Sistema</h2>
+        <button class="btn btn-sm btn-outline" id="clearLogsBtn">Limpar</button>
+      </div>
+      <div class="debug-log" id="debugLog">
+        <p class="empty-state"><span class="empty-icon">&#128187;</span><br>Sem logs</p>
+      </div>
+    </section>
+
+    <button id="stopAllBtn" class="btn btn-danger btn-block btn-lg">&#9208; PARAR TODOS OS ASPERSORES</button>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="dashboard">
+      <span class="nav-icon">&#127968;</span> Inicio
+    </button>
+    <button class="nav-btn" data-tab="zones">
+      <span class="nav-icon">&#128167;</span> Zonas
+    </button>
+    <button class="nav-btn" data-tab="schedule">
+      <span class="nav-icon">&#128339;</span> Horarios
+    </button>
+    <button class="nav-btn" data-tab="weather">
+      <span class="nav-icon">&#9728;</span> Tempo
+    </button>
+    <button class="nav-btn" data-tab="debug">
+      <span class="nav-icon">&#128187;</span> Debug
+      <span class="debug-badge" id="debugBadge" style="display:none">0</span>
+    </button>
+    <button class="nav-btn" data-tab="settings">
+      <span class="nav-icon">&#9881;</span> Definicoes
+    </button>
+  </nav>
+
+  <!-- Connection Modal -->
+  <div class="connection-modal" id="connectionModal">
+    <div class="modal-content">
+      <h3>Conectar ao Arduino</h3>
+      <p>Escolhe o metodo de conexao</p>
+      <button id="wifiConnect" class="btn btn-primary btn-block">&#127760; WiFi (ESP8266/ESP32)</button>
+      <div id="wifiIpGroup" style="display:none;margin-top:8px;">
+        <label>Endereco IP do ESP</label>
+        <input type="text" id="wifiIp" placeholder="192.168.4.1" style="margin-bottom:8px;">
+        <button id="wifiConnectConfirm" class="btn btn-primary btn-block">Conectar via WiFi</button>
+      </div>
+      <button id="btConnect" class="btn btn-secondary btn-block">&#128241; Bluetooth (Telemovel)</button>
+      <button id="serialConnect" class="btn btn-secondary btn-block">&#128268; USB Serial (PC)</button>
+      <button id="demoConnect" class="btn btn-outline btn-block">&#128218; Modo Demo (Sem Hardware)</button>
+      <button id="cancelConnect" class="btn btn-ghost btn-block">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Schedule Modal -->
+  <div class="schedule-modal" id="scheduleModal">
+    <div class="modal-content">
+      <h3>Novo Horario</h3>
+      <label>Zona</label>
+      <select id="scheduleZone"></select>
+      <label>Hora de Inicio</label>
+      <input type="time" id="scheduleTime">
+      <label>Duracao (minutos)</label>
+      <input type="number" id="scheduleDuration" min="1" max="120" value="10">
+      <label>Dias</label>
+      <div class="days-picker" id="daysPicker"></div>
+      <div class="modal-actions">
+        <button id="saveSchedule" class="btn btn-primary">Guardar</button>
+        <button id="cancelSchedule" class="btn btn-ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Modal -->
+  <div class="connection-modal" id="locationModal">
+    <div class="modal-content">
+      <h3>&#127758; Localizacao</h3>
+      <p>Para previsao meteorologica e ajuste automatico das regas, precisamos da tua localizacao.</p>
+      <button id="useGeoBtn" class="btn btn-primary btn-block">&#128205; Usar Localizacao Atual</button>
+      <div class="divider" style="margin:14px 0"></div>
+      <label>Ou procura a tua cidade</label>
+      <input type="text" id="ipmaSearchInput" placeholder="Procurar cidade..." autocomplete="off" style="margin-bottom:8px">
+      <select id="ipmaCitySelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-elevated);color:var(--text);font-size:0.9rem;margin-bottom:12px">
+        <option value="">A carregar cidades...</option>
+      </select>
+      <div class="modal-actions">
+        <button id="skipLocation" class="btn btn-ghost">Saltar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/logger.js?v=5"></script>
+  <script src="js/bluetooth.js?v=4"></script>
+  <script src="js/serial.js?v=4"></script>
+  <script src="js/wifi.js?v=4"></script>
+  <script src="js/demo.js?v=4"></script>
+  <script src="js/app.js?v=7"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js?v=2');
+    }
+  </script>
+</body>
+</html>

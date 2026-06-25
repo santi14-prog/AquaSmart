@@ -1,0 +1,3 @@
+@echo off
+echo A iniciar Aquasmart...
+node "C:\Users\Utilizador\sprinkler-app\server.js"
