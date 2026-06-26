@@ -43,6 +43,19 @@ self.addEventListener('fetch', (e) => {
   if (e.request.url.includes('googleapis.com') || e.request.url.includes('gstatic.com')) return;
   if (e.request.url.includes('jsdelivr.net')) return;
 
+  // Network-first for HTML (so login always shows fresh)
+  if (e.request.headers.get('Accept')?.includes('text/html')) {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        return response;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then((cached) => {
       const fetched = fetch(e.request).then((response) => {
