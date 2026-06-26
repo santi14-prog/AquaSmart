@@ -75,6 +75,11 @@ const APP = {
     passwordInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') tryLogin();
     });
+
+    document.getElementById('passToggle').onclick = () => {
+      const isPass = passwordInput.type === 'password';
+      passwordInput.type = isPass ? 'text' : 'password';
+    };
   },
 
   _startApp() {
@@ -140,6 +145,9 @@ const APP = {
       const cls = v === 1 ? 'c1' : (v === 2 ? 'c2' : 'c3');
       return `<div class="pixel show ${cls}" style="animation-delay:${(i % 16) * 0.03}s"></div>`;
     }).join('');
+    requestAnimationFrame(() => {
+      water.classList.add('sliding');
+    });
     setTimeout(() => {
       const splash = document.getElementById('splash');
       splash.classList.add('hide');

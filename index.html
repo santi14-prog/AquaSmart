@@ -22,9 +22,11 @@
   <div id="loginScreen">
     <div class="login-content">
       <img class="login-logo" src="icons/logo.png" alt="AquaSmart">
-      <h2>AquaSmart</h2>
       <p>Insere a password para aceder</p>
-      <input type="password" id="loginPassword" class="login-password" placeholder="Password">
+      <div class="login-pass-wrap">
+        <input type="password" id="loginPassword" class="login-password" placeholder="Password">
+        <span class="pass-toggle" id="passToggle" title="Mostrar password">&#128065;</span>
+      </div>
       <p id="loginError" class="login-error" style="display:none">Password incorreta</p>
       <button id="loginBtn" class="btn btn-primary btn-block" style="margin-top:12px">Entrar</button>
     </div>

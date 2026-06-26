@@ -83,23 +83,26 @@
 /* Pixel water drop slides along the loading bar */
 .splash-water {
   position: absolute;
-  top: -50px;
-  left: -45px;
+  top: -24px;
+  left: -14px;
   display: grid;
-  grid-template-columns: repeat(8, 2px);
-  grid-template-rows: repeat(10, 2px);
-  gap: 0.5px;
+  grid-template-columns: repeat(8, 3px);
+  grid-template-rows: repeat(10, 3px);
+  gap: 1px;
+  opacity: 0;
+}
+
+.splash-water.sliding {
   animation: dropSlide 4s ease-in-out forwards;
-  top: -18px;
-  left: -10px;
+  opacity: 1;
 }
 
 @keyframes dropSlide {
-  0% { left: -10px; opacity: 0; }
+  0% { left: -14px; opacity: 0; }
   10% { opacity: 0.6; }
-  60% { left: 190px; }
+  60% { left: 184px; }
   80% { opacity: 0.6; }
-  100% { left: 210px; opacity: 0; }
+  100% { left: 208px; opacity: 0; }
 }
 
 @keyframes splashPixel {
@@ -109,8 +112,8 @@
 }
 
 .splash-water .pixel {
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   border-radius: 1px;
   opacity: 0;
   transform: scale(0);
