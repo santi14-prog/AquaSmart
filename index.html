@@ -18,6 +18,24 @@
 </head>
 <body>
 
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div class="login-content">
+      <img class="login-logo" src="icons/logo.png" alt="AquaSmart">
+      <h2 id="loginTitle">Bem-vindo</h2>
+      <p id="loginSub">Insere o PIN para aceder</p>
+      <div class="pin-inputs" id="pinInputs">
+        <input type="password" maxlength="1" class="pin-dot" inputmode="numeric" pattern="[0-9]">
+        <input type="password" maxlength="1" class="pin-dot" inputmode="numeric" pattern="[0-9]">
+        <input type="password" maxlength="1" class="pin-dot" inputmode="numeric" pattern="[0-9]">
+        <input type="password" maxlength="1" class="pin-dot" inputmode="numeric" pattern="[0-9]">
+      </div>
+      <p id="loginError" class="login-error" style="display:none">PIN incorreto</p>
+      <button id="loginBtn" class="btn btn-primary btn-block" style="margin-top:14px">Entrar</button>
+      <button id="resetPinBtn" class="btn btn-ghost btn-sm" style="margin-top:4px;font-size:0.7rem">Repor PIN</button>
+    </div>
+  </div>
+
   <!-- Splash Screen -->
   <div id="splash">
     <img class="splash-logo-img" src="icons/logo.png" alt="AquaSmart">

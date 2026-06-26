@@ -43,6 +43,86 @@ const APP = {
   // === Init ===
   init() {
     LOG('Inicializando AquaSmart...');
+    this._setupLogin();
+  },
+
+  _setupLogin() {
+    const storedPin = localStorage.getItem('aquasmart_pin');
+    const loginScreen = document.getElementById('loginScreen');
+    const loginTitle = document.getElementById('loginTitle');
+    const loginSub = document.getElementById('loginSub');
+    const loginBtn = document.getElementById('loginBtn');
+    const pinInputs = document.querySelectorAll('.pin-dot');
+    const errorEl = document.getElementById('loginError');
+    const resetBtn = document.getElementById('resetPinBtn');
+
+    if (!storedPin) {
+      loginTitle.textContent = 'Criar PIN';
+      loginSub.textContent = 'Define um PIN de 4 digitos';
+      loginBtn.textContent = 'Guardar PIN';
+      resetBtn.style.display = 'none';
+    }
+
+    const getPin = () => {
+      let pin = '';
+      pinInputs.forEach(inp => { pin += inp.value; });
+      return pin;
+    };
+
+    pinInputs.forEach((inp, i) => {
+      inp.addEventListener('input', (e) => {
+        if (e.target.value.length === 1 && i < 3) {
+          pinInputs[i + 1].focus();
+        }
+        pinInputs.forEach(p => p.classList.remove('filled'));
+        pinInputs.forEach(p => { if (p.value) p.classList.add('filled'); });
+        if (getPin().length === 4) loginBtn.click();
+      });
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !inp.value && i > 0) {
+          pinInputs[i - 1].focus();
+        }
+      });
+    });
+
+    loginBtn.onclick = () => {
+      const pin = getPin();
+      if (pin.length < 4) return;
+
+      if (!storedPin) {
+        localStorage.setItem('aquasmart_pin', pin);
+        loginScreen.classList.add('hide');
+        setTimeout(() => {
+          if (loginScreen.parentNode) loginScreen.parentNode.removeChild(loginScreen);
+        }, 400);
+        this._startApp();
+        return;
+      }
+
+      if (pin === storedPin) {
+        loginScreen.classList.add('hide');
+        setTimeout(() => {
+          if (loginScreen.parentNode) loginScreen.parentNode.removeChild(loginScreen);
+        }, 400);
+        this._startApp();
+      } else {
+        errorEl.style.display = '';
+        pinInputs.forEach(p => { p.value = ''; p.classList.remove('filled'); });
+        pinInputs[0].focus();
+        setTimeout(() => { errorEl.style.display = 'none'; }, 2000);
+      }
+    };
+
+    resetBtn.onclick = () => {
+      if (confirm('Repor o PIN? Todos os dados serao mantidos.')) {
+        localStorage.removeItem('aquasmart_pin');
+        location.reload();
+      }
+    };
+  },
+
+  _startApp() {
+    LOG('Inicializando AquaSmart...');
     this._migrateOldData();
     this.loadZones();
     this.loadSchedules();

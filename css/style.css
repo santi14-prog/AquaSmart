@@ -1601,7 +1601,99 @@ body.light .weather-recommendation { background: linear-gradient(135deg, var(--b
   transition: width 0.5s ease;
 }
 
-/* === Responsive Grid === */
+/* === Login Screen === */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+#loginScreen.hide {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.login-content {
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.login-logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 4px 16px rgba(6,182,212,0.2));
+}
+
+.login-content h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.login-content p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 20px;
+}
+
+.pin-inputs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.pin-dot {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-appearance: none;
+  appearance: none;
+  caret-color: var(--cyan-400);
+  transition: all var(--transition);
+}
+
+.pin-dot:focus {
+  outline: none;
+  border-color: var(--cyan-500);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+  background: var(--bg-elevated);
+}
+
+.pin-dot.filled {
+  border-color: var(--cyan-600);
+  background: rgba(6,182,212,0.06);
+}
+
+.login-error {
+  color: var(--red-400);
+  font-size: 0.72rem !important;
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
 @media (min-width: 480px) {
   .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
 }
