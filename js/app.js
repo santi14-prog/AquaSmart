@@ -76,10 +76,14 @@ const APP = {
       if (e.key === 'Enter') tryLogin();
     });
 
-    document.getElementById('passToggle').onclick = () => {
-      const isPass = passwordInput.type === 'password';
-      passwordInput.type = isPass ? 'text' : 'password';
-    };
+    const toggleBtn = document.getElementById('passToggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const showing = passwordInput.type === 'text';
+        passwordInput.type = showing ? 'password' : 'text';
+        toggleBtn.textContent = showing ? 'Mostrar' : 'Ocultar';
+      });
+    }
   },
 
   _startApp() {
