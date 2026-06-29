@@ -39,6 +39,7 @@ const APP = {
   notifEnabled: true,
   _notifications: [],
   sensorData: { moisture: null, timestamp: null },
+  pumpPaused: false,
 
   // === Init ===
   init() {
@@ -98,6 +99,7 @@ const APP = {
     this.loadIpmaLocation();
     this.loadProfiles();
     this.loadNotifPref();
+    this.loadPumpState();
     this.renderZones();
     this.renderSchedules();
     this.renderDashboard();
@@ -107,12 +109,15 @@ const APP = {
     document.querySelector('.schedule-section').style.display = 'none';
     document.querySelector('.zones-section').style.display = 'none';
     document.querySelector('.debug-section').style.display = 'none';
+    const ws = document.querySelector('.weather-section');
+    if (ws) ws.style.display = 'none';
+    const hp = document.querySelector('.history-tab-section');
+    if (hp) hp.style.display = 'none';
     LOG('Zonas carregadas:', this.zones.length);
     LOG('Horarios carregados:', this.schedules.length);
     LOG('Historico carregado:', this.history.length, 'registos');
     this._showSplash();
     this._requestNotificationPermission();
-    setTimeout(() => this.renderChart(), 2500);
     setTimeout(() => this.updateDebugBadge(), 2600);
 
     if (!this.hasLocation()) {
@@ -503,20 +508,25 @@ const APP = {
 
   addHistory(zoneName, action, duration) {
     const now = new Date();
+    const waterUsed = duration ? Math.round((duration / 60) * this.flowRate) : 0;
+    const humidity = this.sensorData.moisture;
+    const temperature = this.weather ? Math.round(this.weather.tempMax) : null;
     const entry = {
       time: now.toISOString(),
       timeStr: now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
       dateStr: now.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }),
       zone: zoneName,
       action,
-      duration
+      duration,
+      waterUsed,
+      humidity,
+      temperature
     };
     this.history.push(entry);
     this.saveHistory();
     this.renderHistory();
     this.renderDashboard();
-    this.renderChart();
-    LOG('Historico:', action, zoneName, duration ? duration + 's' : '');
+    LOG('Historico:', action, zoneName, duration ? duration + 's' : '', waterUsed + 'L');
   },
 
   clearHistory() {
@@ -525,7 +535,6 @@ const APP = {
     this.saveHistory();
     this.renderHistory();
     this.renderDashboard();
-    this.renderChart();
     this.showToast('Historico apagado');
   },
 
@@ -546,9 +555,129 @@ const APP = {
           <span class="history-action ${h.action.includes('LIG') ? 'on' : 'off'}">${h.action}</span>
           <span class="history-time">${h.dateStr} ${h.timeStr}</span>
         </div>
-        <span class="history-duration">${h.duration ? h.duration + 's' : ''}</span>
+        <span class="history-duration">${h.waterUsed ? h.waterUsed + ' L' : ''}</span>
       </div>
     `).join('');
+  },
+
+  renderHistoryTab() {
+    const container = document.getElementById('historyTabContent');
+    if (!container) return;
+
+    const totalWater = this.getWaterTotal();
+    const totalCycles = this.getTotalCycles();
+    const costTotal = ((totalWater / 1000) * this.waterPrice).toFixed(2);
+
+    let cycles = [];
+    const onEntries = this.history.filter(h => h.action.includes('LIG'));
+    const offEntries = this.history.filter(h => h.action.includes('DESLIG'));
+
+    for (const onEntry of onEntries) {
+      const offEntry = offEntries.find(o =>
+        o.zone === onEntry.zone && new Date(o.time) > new Date(onEntry.time)
+      );
+      if (offEntry) {
+        const idx = offEntries.indexOf(offEntry);
+        offEntries.splice(idx, 1);
+      }
+      cycles.push({
+        zone: onEntry.zone,
+        timeStart: onEntry.time,
+        timeEnd: offEntry ? offEntry.time : null,
+        dateStartStr: onEntry.dateStr,
+        timeStartStr: onEntry.timeStr,
+        timeEndStr: offEntry ? offEntry.timeStr : '--',
+        duration: onEntry.duration,
+        durationStr: onEntry.duration ? this._formatDuration(onEntry.duration) : '--',
+        waterUsed: onEntry.waterUsed || 0,
+        humidityStart: onEntry.humidity,
+        humidityEnd: offEntry ? offEntry.humidity : null,
+        tempStart: onEntry.temperature,
+        tempEnd: offEntry ? offEntry.temperature : null
+      });
+    }
+
+    cycles.reverse();
+
+    let html = '';
+
+    html += `<div class="history-summary-cards">
+      <div class="summary-card">
+        <div class="summary-value">${totalCycles}</div>
+        <div class="summary-label">Total Regas</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">${totalWater} L</div>
+        <div class="summary-label">Agua Total</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">${costTotal} €</div>
+        <div class="summary-label">Custo Estimado</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value">${this.zones.length}</div>
+        <div class="summary-label">Zonas</div>
+      </div>
+    </div>`;
+
+    if (cycles.length === 0) {
+      html += '<p class="empty-state"><span class="empty-icon">📋</span><br>Nenhuma rega registada</p>';
+    } else {
+      html += '<div class="history-cycle-list">';
+      for (const c of cycles) {
+        const humStart = c.humidityStart !== null && c.humidityStart !== undefined ? c.humidityStart + '%' : '--';
+        const humEnd = c.humidityEnd !== null && c.humidityEnd !== undefined ? c.humidityEnd + '%' : '--';
+        const tmpStart = c.tempStart !== null ? c.tempStart + '°' : '--';
+        const tmpEnd = c.tempEnd !== null ? c.tempEnd + '°' : '--';
+
+        html += `
+        <div class="history-cycle-item">
+          <div class="cycle-header">
+            <span class="cycle-zone">💧 ${c.zone}</span>
+            <span class="cycle-date">${c.dateStartStr}</span>
+          </div>
+          <div class="cycle-body">
+            <div class="cycle-row">
+              <span class="cycle-label">Inicio</span>
+              <span class="cycle-val">${c.timeStartStr}</span>
+            </div>
+            <div class="cycle-row">
+              <span class="cycle-label">Fim</span>
+              <span class="cycle-val">${c.timeEndStr}</span>
+            </div>
+            <div class="cycle-row">
+              <span class="cycle-label">Duracao</span>
+              <span class="cycle-val">${c.durationStr}</span>
+            </div>
+            <div class="cycle-row">
+              <span class="cycle-label">Agua</span>
+              <span class="cycle-val water">${c.waterUsed} L</span>
+            </div>
+            <div class="cycle-row">
+              <span class="cycle-label">Humidade</span>
+              <span class="cycle-val">${humStart} → ${humEnd}</span>
+            </div>
+            <div class="cycle-row">
+              <span class="cycle-label">Temperatura</span>
+              <span class="cycle-val">${tmpStart} → ${tmpEnd}</span>
+            </div>
+          </div>
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  },
+
+  _formatDuration(seconds) {
+    if (seconds < 60) return seconds + 's';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m < 60) return m + 'min' + (s > 0 ? ' ' + s + 's' : '');
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return h + 'h' + (rm > 0 ? ' ' + rm + 'min' : '');
   },
 
   // === Water Usage ===
@@ -582,6 +711,63 @@ const APP = {
 
   getTotalCycles() {
     return this.history.filter(h => h.action.includes('LIG')).length;
+  },
+
+  getRegasToday() {
+    const today = new Date().toLocaleDateString('pt-PT');
+    return this.history.filter(h => {
+      const hDate = new Date(h.time).toLocaleDateString('pt-PT');
+      return hDate === today && h.action.includes('LIG');
+    }).length;
+  },
+
+  getGreeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Bom dia';
+    if (h < 18) return 'Boa tarde';
+    return 'Boa noite';
+  },
+
+  loadPumpState() {
+    const saved = localStorage.getItem('aquasmart_pump');
+    if (saved !== null) this.pumpPaused = saved === 'true';
+  },
+
+  savePumpState() {
+    localStorage.setItem('aquasmart_pump', this.pumpPaused);
+  },
+
+  togglePump() {
+    this.pumpPaused = !this.pumpPaused;
+    this.savePumpState();
+    if (this.pumpPaused) {
+      this.stopAllSilent();
+      this.showToast('Bomba em pausa');
+      this.addNotification('Bomba', 'Sistema em pausa', 'warn');
+    } else {
+      this.showToast('Bomba ativa');
+      this.addNotification('Bomba', 'Sistema ativo', 'success');
+    }
+    this.renderDashboard();
+  },
+
+  async stopAllSilent() {
+    for (const z of this.zones) {
+      this.activeZones.delete(z.id);
+      this.zoneTimers[z.id] = 0;
+    }
+    await this.sendCommand('ALLOFF');
+    this.renderZones();
+    this.renderDashboard();
+    this.updateActiveCount();
+  },
+
+  getWaterTotal() {
+    let total = 0;
+    for (const h of this.history) {
+      if (h.waterUsed) total += h.waterUsed;
+    }
+    return total;
   },
 
   getWaterByZone() {
@@ -832,22 +1018,79 @@ const APP = {
     const locName = this.viewLocationName || this.ipmaCityName;
 
     if (!weather || !forecast) {
-      document.getElementById('weatherLocation').textContent = locName || 'Sem localizacao';
-
-    const banner = document.getElementById('locationBanner');
-    if (banner) banner.style.display = this.hasLocation() ? 'none' : '';
+      const wl = document.getElementById('weatherLocation');
+      if (wl) wl.textContent = locName || 'Sem localizacao';
+      const banner = document.getElementById('locationBanner');
+      if (banner) banner.style.display = this.hasLocation() ? 'none' : '';
       return;
     }
-    document.getElementById('weatherLocation').textContent = locName || 'Localizacao';
-    document.getElementById('weatherTempLarge').textContent = Math.round(weather.tempMax) + '°';
-    document.getElementById('weatherDescLarge').textContent = this.getWeatherDescription(weather.weatherCode);
-    document.getElementById('weatherPrecip').textContent = 'Chuva: ' + Math.round(weather.precipitation) + '% prob';
-    document.getElementById('weatherMinMax').textContent = Math.round(weather.tempMin) + '° / ' + Math.round(weather.tempMax) + '°';
-    document.getElementById('weatherIconLarge').textContent = this.getWeatherIcon(weather.weatherCode);
+    const wl = document.getElementById('weatherLocation');
+    const wtl = document.getElementById('weatherTempLarge');
+    const wdl = document.getElementById('weatherDescLarge');
+    const wp = document.getElementById('weatherPrecip');
+    const wmm = document.getElementById('weatherMinMax');
+    const wil = document.getElementById('weatherIconLarge');
+    if (wl) wl.textContent = locName || 'Localizacao';
+    if (wtl) wtl.textContent = Math.round(weather.tempMax) + '°';
+    if (wdl) wdl.textContent = this.getWeatherDescription(weather.weatherCode);
+    if (wp) wp.textContent = 'Chuva: ' + Math.round(weather.precipitation) + '% prob';
+    if (wmm) wmm.textContent = Math.round(weather.tempMin) + '° / ' + Math.round(weather.tempMax) + '°';
+    if (wil) wil.textContent = this.getWeatherIcon(weather.weatherCode);
 
     this.renderForecastCards();
     this.updateRecommendation();
     setTimeout(() => this.renderWeatherChart(), 150);
+  },
+
+  renderWeatherInline() {
+    const container = document.getElementById('weatherInline');
+    if (!container) return;
+
+    const forecast = this.viewForecast || this.forecast;
+    const weather = this.viewWeather || this.weather;
+    const locName = this.viewLocationName || this.ipmaCityName;
+
+    if (!weather || !forecast || !this.hasLocation()) {
+      container.innerHTML = `<div class="weather-inline-empty">
+        <span>📡 Sem dados meteorológicos</span>
+        <button class="btn btn-sm btn-outline" id="openLocationInlineBtn">Definir localização</button>
+      </div>`;
+      document.getElementById('openLocationInlineBtn')?.addEventListener('click', () => this._showLocationModal());
+      return;
+    }
+
+    const rec = this.getRecommendation();
+    container.innerHTML = `
+      <div class="weather-inline-header">
+        <span class="wi-loc">📍 ${locName}</span>
+        <span class="wi-temp">${this.getWeatherIcon(weather.weatherCode)} ${Math.round(weather.tempMax)}°</span>
+        <span class="wi-desc">${this.getWeatherDescription(weather.weatherCode)}</span>
+      </div>
+      <div class="weather-inline-details">
+        <span>🌡️ ${Math.round(weather.tempMin)}° / ${Math.round(weather.tempMax)}°</span>
+        <span>💧 ${Math.round(weather.precipitation)}% chuva</span>
+      </div>
+      <div class="weather-inline-rec">
+        <span class="wi-rec-icon">${rec.icon}</span>
+        <div>
+          <div class="wi-rec-title">${rec.title}</div>
+          <div class="wi-rec-body">${rec.body}</div>
+        </div>
+      </div>
+      <div class="forecast-cards">${(forecast.slice(0, 5)).map((d, i) => {
+        const date = new Date(d.forecastDate + 'T00:00:00');
+        const day = date.toLocaleDateString('pt-PT', { weekday: 'short', day: '2-digit' });
+        const isToday = i === 0;
+        const icon = this.getWeatherIcon(d.idWeatherType);
+        return `<div class="forecast-card ${isToday ? 'today' : ''}">
+          <span class="fc-day">${isToday ? 'Hoje' : day}</span>
+          <span class="fc-icon">${icon}</span>
+          <span class="fc-temp">${Math.round(parseFloat(d.tMax))}°</span>
+          <span class="fc-temp-lo">${Math.round(parseFloat(d.tMin))}°</span>
+          ${d.precipitaProb > 0 ? `<span class="fc-rain">${Math.round(d.precipitaProb)}%</span>` : ''}
+        </div>`;
+      }).join('')}</div>
+    `;
   },
 
   renderForecastCards() {
@@ -1122,6 +1365,44 @@ const APP = {
   renderDebugLogs() {
     const logEl = document.getElementById('debugLog');
     if (!logEl) return;
+
+    const connected = this.currentConnection && this.currentConnection.isConnected();
+    const totalLogs = (window._LOG_BUFFER || []).length;
+    const errors = (window._LOG_BUFFER || []).filter(l => l.level === 'ERR').length;
+    const warnings = (window._LOG_BUFFER || []).filter(l => l.level === 'WARN').length;
+
+    const statusSection = document.getElementById('debugStatus');
+    if (statusSection) {
+      statusSection.innerHTML = `
+        <div class="debug-status-grid">
+          <div class="debug-stat">
+            <div class="debug-stat-val">${connected ? '✅' : '❌'}</div>
+            <div class="debug-stat-label">Conexao</div>
+          </div>
+          <div class="debug-stat">
+            <div class="debug-stat-val">${this.zones.length}</div>
+            <div class="debug-stat-label">Zonas</div>
+          </div>
+          <div class="debug-stat">
+            <div class="debug-stat-val">${this.activeZones.size}</div>
+            <div class="debug-stat-label">Ativas</div>
+          </div>
+          <div class="debug-stat">
+            <div class="debug-stat-val">${this.schedules.length}</div>
+            <div class="debug-stat-label">Horarios</div>
+          </div>
+          <div class="debug-stat">
+            <div class="debug-stat-val">${this.history.length}</div>
+            <div class="debug-stat-label">Registos</div>
+          </div>
+          <div class="debug-stat">
+            <div class="debug-stat-val">${errors}</div>
+            <div class="debug-stat-label">Erros</div>
+          </div>
+        </div>
+      `;
+    }
+
     const buffer = window._LOG_BUFFER || [];
     if (buffer.length === 0) {
       logEl.innerHTML = '<p class="empty-state"><span class="empty-icon">&#128187;</span><br>Sem logs</p>';
@@ -1130,7 +1411,12 @@ const APP = {
     const recent = [...buffer].reverse().slice(0, 100);
     logEl.innerHTML = recent.map(l => {
       const escaped = l.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return `<div class="log-entry"><span class="log-time">${l.time}</span><span class="log-level ${l.level}">${l.level}</span><span class="log-msg">${escaped}</span></div>`;
+      const color = l.level === 'ERR' ? 'var(--red-400)' : (l.level === 'WARN' ? 'var(--amber-400)' : 'var(--green-400)');
+      return `<div class="log-entry">
+        <span class="log-time">${l.time}</span>
+        <span class="log-level" style="color:${color}">${l.level === 'ERR' ? 'ERRO' : l.level === 'WARN' ? 'AVISO' : 'INFO'}</span>
+        <span class="log-msg">${escaped}</span>
+      </div>`;
     }).join('');
   },
 
@@ -1197,60 +1483,78 @@ const APP = {
 
   // === Dashboard ===
   renderDashboard() {
-    const nextEl = document.getElementById('dashNext');
-    const nextZoneEl = document.getElementById('dashNextZone');
-    const activeEl = document.getElementById('dashActive');
-    const waterEl = document.getElementById('dashWater');
-    const totalEl = document.getElementById('dashTotal');
-    const costEl = document.getElementById('dashCost');
+    const greetingEl = document.getElementById('greeting');
+    if (greetingEl) greetingEl.textContent = this.getGreeting();
 
-    if (!nextEl) return;
-
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-    const today = dayNames[now.getDay()];
-    let nextSchedule = null;
-    let nextMin = Infinity;
-
-    for (const s of this.schedules) {
-      if (!s.days.includes(today)) continue;
-      const [h, m] = s.time.split(':').map(Number);
-      const sMin = h * 60 + m;
-      if (sMin > currentTime && sMin < nextMin) {
-        nextMin = sMin;
-        nextSchedule = s;
-      }
+    const humidityEl = document.getElementById('dashHumidity');
+    if (humidityEl) {
+      humidityEl.textContent = this.sensorData.moisture !== null ? this.sensorData.moisture + '%' : '--';
     }
-    if (!nextSchedule) {
+
+    const tempEl = document.getElementById('dashTemp');
+    if (tempEl) {
+      tempEl.textContent = this.weather ? Math.round(this.weather.tempMax) + '°' : '--';
+    }
+
+    const nextEl = document.getElementById('dashNextWater');
+    const nextZoneEl = document.getElementById('dashNextZone');
+    if (nextEl) {
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+      const today = dayNames[now.getDay()];
+      let nextSchedule = null;
+      let nextMin = Infinity;
+
       for (const s of this.schedules) {
+        if (!s.days.includes(today)) continue;
         const [h, m] = s.time.split(':').map(Number);
         const sMin = h * 60 + m;
-        if (sMin < nextMin) {
+        if (sMin > currentTime && sMin < nextMin) {
           nextMin = sMin;
           nextSchedule = s;
         }
       }
+      if (!nextSchedule) {
+        for (const s of this.schedules) {
+          const [h, m] = s.time.split(':').map(Number);
+          const sMin = h * 60 + m;
+          if (sMin < nextMin) { nextMin = sMin; nextSchedule = s; }
+        }
+      }
+
+      if (nextSchedule) {
+        const zone = this.zones.find(z => z.id === nextSchedule.zoneId);
+        nextEl.textContent = nextSchedule.time;
+        if (nextZoneEl) nextZoneEl.textContent = (zone ? zone.name : '') + (this.isRainyDay() ? ' (chuva)' : '');
+      } else {
+        nextEl.textContent = '--:--';
+        if (nextZoneEl) nextZoneEl.textContent = '';
+      }
     }
 
-    if (nextSchedule) {
-      const zone = this.zones.find(z => z.id === nextSchedule.zoneId);
-      nextEl.textContent = nextSchedule.time;
-      nextZoneEl.textContent = (zone ? zone.name : '') + (this.isRainyDay() ? ' (pode saltar)' : '');
-    } else {
-      nextEl.textContent = '--:--';
-      nextZoneEl.textContent = 'Nenhum';
-    }
+    const waterTodayEl = document.getElementById('dashWaterToday');
+    if (waterTodayEl) waterTodayEl.textContent = this.getWaterToday() + ' L';
 
-    activeEl.textContent = this.activeZones.size;
-    waterEl.textContent = this.getWaterToday() + ' L';
-    totalEl.textContent = this.getTotalCycles();
-    if (costEl) costEl.innerHTML = this.getWaterCostThisMonth() + ' &euro;';
+    const regasTodayEl = document.getElementById('dashRegasToday');
+    if (regasTodayEl) regasTodayEl.textContent = this.getRegasToday();
+
+    const pumpBtn = document.getElementById('pumpToggleBtn');
+    if (pumpBtn) {
+      if (this.pumpPaused) {
+        pumpBtn.className = 'pump-btn paused';
+        pumpBtn.querySelector('.pump-icon').textContent = '▶️';
+        pumpBtn.querySelector('.pump-label').textContent = 'BOMBA EM PAUSA';
+        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para ativar';
+      } else {
+        pumpBtn.className = 'pump-btn on';
+        pumpBtn.querySelector('.pump-icon').textContent = '⏸️';
+        pumpBtn.querySelector('.pump-label').textContent = 'BOMBA LIGADA';
+        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para pausar';
+      }
+    }
 
     this.renderHistory();
-    this.renderCalendar();
-    this.renderChart();
-    this.renderDonut();
     this.updateProfileSelect();
   },
 
@@ -1618,6 +1922,10 @@ const APP = {
         return;
       }
 
+      if (this.pumpPaused) {
+        return;
+      }
+
       for (const schedule of this.schedules) {
         if (schedule.time === currentTime && schedule.days.includes(today)) {
           const zone = this.zones.find(z => z.id === schedule.zoneId);
@@ -1803,6 +2111,9 @@ const APP = {
     // Stop all
     document.getElementById('stopAllBtn').addEventListener('click', () => this.stopAll());
 
+    // Pump toggle
+    document.getElementById('pumpToggleBtn')?.addEventListener('click', () => this.togglePump());
+
     // Connection events
     window.addEventListener('device-connected', (e) => {
       this.updateConnectionUI();
@@ -1864,8 +2175,11 @@ const APP = {
         document.querySelector('.dashboard-section').style.display = 'none';
         document.querySelector('.zones-section').style.display = 'none';
         document.querySelector('.schedule-section').style.display = 'none';
-    document.querySelector('.debug-section').style.display = 'none';
-        document.querySelector('.weather-section').style.display = 'none';
+        document.querySelector('.debug-section').style.display = 'none';
+        const ws = document.querySelector('.weather-section');
+        if (ws) ws.style.display = 'none';
+        const hp = document.querySelector('.history-tab-section');
+        if (hp) hp.style.display = 'none';
         const sp = document.querySelector('.settings-panel');
         if (sp) sp.style.display = 'none';
         document.getElementById('stopAllBtn').style.display = 'none';
@@ -1873,16 +2187,17 @@ const APP = {
         if (tab === 'dashboard') {
           document.querySelector('.dashboard-section').style.display = 'block';
           this.renderDashboard();
-          setTimeout(() => { this.renderChart(); this.renderDonut(); }, 100);
         } else if (tab === 'zones') {
           document.querySelector('.zones-section').style.display = 'block';
           document.getElementById('stopAllBtn').style.display = 'block';
         } else if (tab === 'schedule') {
           document.querySelector('.schedule-section').style.display = 'block';
+          this.renderWeatherInline();
           document.getElementById('stopAllBtn').style.display = 'block';
-        } else if (tab === 'weather') {
-          document.querySelector('.weather-section').style.display = 'block';
-          this.renderWeatherSection();
+        } else if (tab === 'history') {
+          const hps = document.querySelector('.history-tab-section');
+          if (hps) hps.style.display = 'block';
+          this.renderHistoryTab();
         } else if (tab === 'debug') {
           document.querySelector('.debug-section').style.display = 'block';
           this.renderDebugLogs();
@@ -1891,27 +2206,6 @@ const APP = {
           this.renderSettings();
         }
       });
-    });
-
-    // Chart tabs
-    document.getElementById('chartContainer')?.addEventListener('click', (e) => {
-      if (e.target.classList.contains('chart-tab')) {
-        document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        this.setChartPeriod(e.target.dataset.period);
-      }
-    });
-
-    // Clear history
-    document.getElementById('clearHistoryBtn').addEventListener('click', () => this.clearHistory());
-
-    // Location banner re-open
-    document.getElementById('openLocationModalBtn')?.addEventListener('click', () => this._showLocationModal());
-    document.getElementById('clearLogsBtn')?.addEventListener('click', () => this.clearLogs());
-
-    // Profile select
-    document.getElementById('profileSelect')?.addEventListener('change', (e) => {
-      this.switchProfile(e.target.value);
     });
 
     // Weather search
@@ -1924,6 +2218,17 @@ const APP = {
       const item = e.target.closest('.search-result-item');
       if (!item || !item.dataset.id) return;
       this.selectViewLocation(parseInt(item.dataset.id), item.dataset.name);
+    });
+
+    // Clear history
+    document.getElementById('clearHistoryBtn')?.addEventListener('click', () => this.clearHistory());
+
+    // Clear logs
+    document.getElementById('clearLogsBtn')?.addEventListener('click', () => this.clearLogs());
+
+    // Profile select
+    document.getElementById('profileSelect')?.addEventListener('change', (e) => {
+      this.switchProfile(e.target.value);
     });
 
     // Log buffer updated
@@ -2252,7 +2557,6 @@ const APP = {
       flowInput.addEventListener('change', () => {
         this.saveFlowRate(flowInput.value);
         this.renderDashboard();
-        this.renderChart();
         this.showToast('Caudal atualizado');
         LOG('Caudal:', flowInput.value, 'L/min');
       });
