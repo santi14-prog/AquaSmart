@@ -107,7 +107,8 @@ const APP = {
     this.startScheduleChecker();
     this.updateActiveCount();
     document.querySelector('.schedule-section').style.display = 'none';
-    document.querySelector('.zones-section').style.display = 'none';
+    const zs = document.querySelector('.zones-section');
+    if (zs) zs.style.display = 'none';
     document.querySelector('.debug-section').style.display = 'none';
     const ws = document.querySelector('.weather-section');
     if (ws) ws.style.display = 'none';
@@ -433,63 +434,15 @@ const APP = {
 
   // === Zones ===
   loadZones() {
-    try {
-      const saved = localStorage.getItem('aquasmart_zones');
-      this.zones = saved ? JSON.parse(saved) : [];
-      this.nextZoneId = this.zones.length > 0 ? Math.max(...this.zones.map(z => z.id)) + 1 : 1;
-    } catch (_) { this.zones = []; this.nextZoneId = 1; }
+    this.zones = [{ id: 1, name: 'Bomba', pin: 2 }];
+    this.nextZoneId = 2;
   },
 
   saveZones() {
     localStorage.setItem('aquasmart_zones', JSON.stringify(this.zones));
   },
 
-  addZone(name, pin) {
-    this.zones.push({ id: this.nextZoneId++, name, pin: parseInt(pin) });
-    this.saveZones();
-    this.renderZones();
-    this.showToast(`Zona "${name}" criada`);
-    this.addNotification('Zona criada', name, 'success');
-    LOG('Zona criada:', name, 'pino', pin);
-  },
-
-  deleteZone(zoneId) {
-    const zone = this.zones.find(z => z.id === zoneId);
-    if (!zone) return;
-    this.activeZones.delete(zoneId);
-    this.zoneTimers[zoneId] = 0;
-    this.stopZone(zoneId);
-    this.zones = this.zones.filter(z => z.id !== zoneId);
-    this.schedules = this.schedules.filter(s => s.zoneId !== zoneId);
-    this.saveZones();
-    this.saveSchedules();
-    this.renderZones();
-    this.renderSchedules();
-    this.renderDashboard();
-    this.updateActiveCount();
-    this.showToast(`Zona "${zone.name}" apagada`);
-    this.addNotification(`Zona apagada`, zone.name, 'warn');
-    LOG('Zona apagada:', zone.name);
-  },
-
-  updateZone(zoneId, name, pin) {
-    const zone = this.zones.find(z => z.id === zoneId);
-    if (!zone) return;
-    zone.name = name;
-    zone.pin = parseInt(pin);
-    this.saveZones();
-    this.renderZones();
-    this.renderSchedules();
-    this.renderDashboard();
-    this.showToast('Zona atualizada');
-  },
-
-  reorderZones(newOrder) {
-    const zoneMap = new Map(this.zones.map(z => [z.id, z]));
-    this.zones = newOrder.map(id => zoneMap.get(id)).filter(Boolean);
-    this.saveZones();
-    this.renderZones();
-  },
+  // === Zones (simplificado para bomba unica) ===
 
   // === History ===
   loadHistory() {
@@ -723,9 +676,12 @@ const APP = {
 
   getGreeting() {
     const h = new Date().getHours();
-    if (h < 12) return 'Bom dia';
-    if (h < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (h < 7) return 'Boa noite, está tudo calmo por aí?';
+    if (h < 12) return 'Bom dia, que o jardim floresça!';
+    if (h < 15) return 'Boa tarde, está na hora da rega?';
+    if (h < 19) return 'Boa tarde, o sol ainda aperta!';
+    if (h < 22) return 'Boa noite, o dia já vai longo...';
+    return 'Boa noite, amanhã há mais.';
   },
 
   loadPumpState() {
@@ -1560,164 +1516,17 @@ const APP = {
 
   // === Zones ===
   renderZones() {
-    const grid = document.getElementById('zonesGrid');
-    if (this.zones.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1">
-          <span class="empty-icon">&#128167;</span>
-          <p style="margin:8px 0">Nenhuma zona configurada</p>
-          <button class="btn btn-primary btn-sm" id="addZoneBtn">+ Criar Zona</button>
-        </div>
-        <div id="addZoneForm" style="grid-column:1/-1;display:none" class="zone-card">
-          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-            <div style="flex:1;min-width:120px">
-              <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Nome</label>
-              <input id="newZoneName" placeholder="ex: Relvado" style="width:100%">
-            </div>
-            <div style="width:80px">
-              <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Pino</label>
-              <input id="newZonePin" type="number" min="0" max="20" value="2" style="width:100%">
-            </div>
-            <button class="btn btn-primary btn-sm" id="saveNewZone" style="height:42px">OK</button>
-            <button class="btn btn-ghost btn-sm" id="cancelNewZone" style="height:42px">Cancelar</button>
-          </div>
-        </div>
-      `;
-      this._bindZoneForm();
-      return;
-    }
-
-    grid.innerHTML = this.zones.map(z => {
-      const isActive = this.activeZones.has(z.id);
-      const remaining = this.zoneTimers[z.id] || 0;
-      const statusClass = remaining > 0 ? 'running' : (isActive ? 'on' : 'off');
-      const statusText = remaining > 0 ? `${remaining}s` : (isActive ? 'LIG' : 'DESL');
-      return `
-        <div class="zone-card ${isActive ? 'active' : ''} ${remaining > 0 ? 'running' : ''}"
-             data-zone="${z.id}" draggable="true">
-          <span class="drag-handle" title="Arrastar para reordenar">&#9776;</span>
-          ${remaining > 0 ? '<span class="drop d1"></span><span class="drop d2"></span><span class="drop d3"></span>' : ''}
-          <div class="zone-header">
-            <span class="zone-name"><span class="zone-icon"></span>${z.name}</span>
-            <span class="zone-status ${statusClass}">${statusText}</span>
-          </div>
-          <div class="zone-controls">
-            <button class="btn btn-primary zone-on" data-zone="${z.id}">LIGAR</button>
-            <button class="btn btn-secondary zone-off" data-zone="${z.id}">DESLIGAR</button>
-          </div>
-          <div class="zone-timer">
-            <span>Desligar apos:</span>
-            <select class="timer-select" data-zone="${z.id}">
-              <option value="0">Manual</option>
-              <option value="30">30 seg</option>
-              <option value="60">1 min</option>
-              <option value="300" selected>5 min</option>
-              <option value="600">10 min</option>
-              <option value="900">15 min</option>
-              <option value="1800">30 min</option>
-              <option value="3600">60 min</option>
-            </select>
-            <button class="delete-zone" data-zone="${z.id}" title="Apagar zona">&#10005;</button>
-          </div>
-        </div>
-      `;
-    }).join('')
-    + `<button class="btn btn-outline btn-block btn-sm" id="addZoneBtn" style="margin-top:8px">+ Nova Zona</button>
-       <div id="addZoneForm" style="display:none;margin-top:8px" class="zone-card">
-         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-           <div style="flex:1;min-width:120px">
-             <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Nome</label>
-             <input id="newZoneName" placeholder="ex: Relvado" style="width:100%">
-           </div>
-           <div style="width:80px">
-             <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Pino</label>
-             <input id="newZonePin" type="number" min="0" max="20" value="${Math.max(...this.zones.map(z => z.pin), 1) + 1}" style="width:100%">
-           </div>
-           <button class="btn btn-primary btn-sm" id="saveNewZone" style="height:42px">OK</button>
-           <button class="btn btn-ghost btn-sm" id="cancelNewZone" style="height:42px">Cancelar</button>
-         </div>
-       </div>`;
-    this._bindZoneForm();
-    this._bindDragDrop();
-  },
-
-  _bindZoneForm() {
-    const addBtn = document.getElementById('addZoneBtn');
-    const form = document.getElementById('addZoneForm');
-    if (addBtn && form) {
-      addBtn.onclick = () => { form.style.display = 'block'; addBtn.style.display = 'none'; };
-    }
-    const cancelBtn = document.getElementById('cancelNewZone');
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        const f = document.getElementById('addZoneForm');
-        const a = document.getElementById('addZoneBtn');
-        if (f) f.style.display = 'none';
-        if (a) a.style.display = '';
-      };
-    }
-    const saveBtn = document.getElementById('saveNewZone');
-    if (saveBtn) {
-      saveBtn.onclick = () => {
-        const name = document.getElementById('newZoneName').value.trim();
-        const pin = document.getElementById('newZonePin').value;
-        if (!name) { this.showToast('Insere um nome para a zona'); return; }
-        if (!pin) { this.showToast('Insere o pino do rele'); return; }
-        this.addZone(name, pin);
-      };
-    }
-  },
-
-  // === Drag & Drop Zones ===
-  _bindDragDrop() {
-    const cards = document.querySelectorAll('.zone-card[draggable]');
-    cards.forEach(card => {
-      card.addEventListener('dragstart', (e) => {
-        card.classList.add('dragging');
-        e.dataTransfer.setData('text/plain', card.dataset.zone);
-        e.dataTransfer.effectAllowed = 'move';
-      });
-      card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-        document.querySelectorAll('.zone-card.drag-over').forEach(c => c.classList.remove('drag-over'));
-      });
-      card.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        const dragging = document.querySelector('.zone-card.dragging');
-        if (!dragging || dragging === card) return;
-        card.classList.add('drag-over');
-      });
-      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
-      card.addEventListener('drop', (e) => {
-        e.preventDefault();
-        card.classList.remove('drag-over');
-        const dragging = document.querySelector('.zone-card.dragging');
-        if (!dragging || dragging === card) return;
-        const fromId = parseInt(dragging.dataset.zone);
-        const toId = parseInt(card.dataset.zone);
-        const fromIdx = this.zones.findIndex(z => z.id === fromId);
-        const toIdx = this.zones.findIndex(z => z.id === toId);
-        if (fromIdx >= 0 && toIdx >= 0) {
-          const [moved] = this.zones.splice(fromIdx, 1);
-          this.zones.splice(toIdx, 0, moved);
-          this.saveZones();
-          this.renderZones();
-          this.renderCalendar();
-        }
-      });
-    });
+    return;
   },
 
   async turnZoneOn(zoneId) {
     const zone = this.zones.find(z => z.id === zoneId);
     if (!zone) return;
     this.activeZones.add(zoneId);
-    const selector = document.querySelector(`.timer-select[data-zone="${zoneId}"]`);
-    const duration = parseInt(selector?.value || 300);
-    if (duration > 0) this.zoneTimers[zoneId] = duration;
+    const duration = 300;
+    this.zoneTimers[zoneId] = duration;
     await this.sendCommand(`ON:${zone.pin}:${duration}`);
-    if (duration > 0 && !this.intervalId) this.startCountdown();
+    if (!this.intervalId) this.startCountdown();
     this.addHistory(zone.name, 'LIGADO', duration);
     this.addNotification(`${zone.name}`, 'Ligado ' + duration + 's', 'success');
     this.renderZones();
@@ -1815,8 +1624,7 @@ const APP = {
   },
 
   updateActiveCount() {
-    const el = document.getElementById('activeZonesCount');
-    if (el) el.textContent = `${this.activeZones.size} ativos`;
+    return;
   },
 
   // === Connection ===
@@ -1877,7 +1685,6 @@ const APP = {
       return;
     }
     list.innerHTML = this.schedules.map((s, i) => {
-      const zone = this.zones.find(z => z.id === s.zoneId);
       const allDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
       const daysDots = allDays.map(d =>
         `<span class="schedule-day-dot ${s.days.includes(d) ? 'active' : ''}">${d.slice(0,1)}</span>`
@@ -1885,7 +1692,7 @@ const APP = {
       return `
         <div class="schedule-item">
           <div class="schedule-info">
-            <span class="schedule-zone">${zone ? zone.name : '--'} &middot; ${s.duration}min</span>
+            <span class="schedule-zone">${s.duration}min</span>
             <span class="schedule-time">&#128339; ${s.time}</span>
             <div class="schedule-days">${daysDots}</div>
           </div>
@@ -2097,20 +1904,6 @@ const APP = {
 
     document.getElementById('cancelConnect').addEventListener('click', () => this.hideConnectionModal());
 
-    // Zone actions (delegated)
-    document.getElementById('zonesGrid').addEventListener('click', (e) => {
-      const zoneId = parseInt(e.target.dataset.zone);
-      if (!zoneId) return;
-      if (e.target.classList.contains('zone-on')) this.turnZoneOn(zoneId);
-      else if (e.target.classList.contains('zone-off')) this.turnZoneOff(zoneId);
-      else if (e.target.classList.contains('delete-zone')) {
-        if (confirm('Apagar esta zona?')) this.deleteZone(zoneId);
-      }
-    });
-
-    // Stop all
-    document.getElementById('stopAllBtn').addEventListener('click', () => this.stopAll());
-
     // Pump toggle
     document.getElementById('pumpToggleBtn')?.addEventListener('click', () => this.togglePump());
 
@@ -2173,7 +1966,8 @@ const APP = {
         const tab = btn.dataset.tab;
 
         document.querySelector('.dashboard-section').style.display = 'none';
-        document.querySelector('.zones-section').style.display = 'none';
+        const zs = document.querySelector('.zones-section');
+        if (zs) zs.style.display = 'none';
         document.querySelector('.schedule-section').style.display = 'none';
         document.querySelector('.debug-section').style.display = 'none';
         const ws = document.querySelector('.weather-section');
@@ -2182,18 +1976,13 @@ const APP = {
         if (hp) hp.style.display = 'none';
         const sp = document.querySelector('.settings-panel');
         if (sp) sp.style.display = 'none';
-        document.getElementById('stopAllBtn').style.display = 'none';
 
         if (tab === 'dashboard') {
           document.querySelector('.dashboard-section').style.display = 'block';
           this.renderDashboard();
-        } else if (tab === 'zones') {
-          document.querySelector('.zones-section').style.display = 'block';
-          document.getElementById('stopAllBtn').style.display = 'block';
         } else if (tab === 'schedule') {
           document.querySelector('.schedule-section').style.display = 'block';
           this.renderWeatherInline();
-          document.getElementById('stopAllBtn').style.display = 'block';
         } else if (tab === 'history') {
           const hps = document.querySelector('.history-tab-section');
           if (hps) hps.style.display = 'block';
@@ -2251,9 +2040,6 @@ const APP = {
 
   // === Schedule Modal ===
   showScheduleModal() {
-    if (this.zones.length === 0) { this.showToast('Cria uma zona primeiro'); return; }
-    const zoneSelect = document.getElementById('scheduleZone');
-    zoneSelect.innerHTML = this.zones.map(z => `<option value="${z.id}">${z.name}</option>`).join('');
     document.getElementById('scheduleTime').value = '06:00';
     document.getElementById('scheduleDuration').value = '10';
     const picker = document.getElementById('daysPicker');
@@ -2269,23 +2055,19 @@ const APP = {
     document.getElementById('scheduleModal').classList.remove('show');
   },
   saveNewSchedule() {
-    const zoneId = parseInt(document.getElementById('scheduleZone').value);
     const time = document.getElementById('scheduleTime').value;
     const duration = parseInt(document.getElementById('scheduleDuration').value);
     const days = Array.from(document.querySelectorAll('#daysPicker .day-chip.selected')).map(c => c.dataset.day);
-    if (!zoneId && zoneId !== 0) { this.showToast('Seleciona uma zona'); return; }
     if (!time) { this.showToast('Define uma hora'); return; }
     if (!duration || duration < 1) { this.showToast('Duracao invalida'); return; }
     if (days.length === 0) { this.showToast('Seleciona pelo menos um dia'); return; }
-    this.addSchedule(zoneId, time, duration, days);
+    this.addSchedule(1, time, duration, days);
     this.hideScheduleModal();
     this.showToast('Horario guardado');
   },
   editSchedule(index) {
     const schedule = this.schedules[index];
     if (!schedule) return;
-    const zoneSelect = document.getElementById('scheduleZone');
-    zoneSelect.innerHTML = this.zones.map(z => `<option value="${z.id}" ${z.id === schedule.zoneId ? 'selected' : ''}>${z.name}</option>`).join('');
     document.getElementById('scheduleTime').value = schedule.time;
     document.getElementById('scheduleDuration').value = schedule.duration;
     const picker = document.getElementById('daysPicker');
@@ -2299,11 +2081,10 @@ const APP = {
     const saveBtn = document.getElementById('saveSchedule');
     const oldHandler = saveBtn.onclick;
     saveBtn.onclick = () => {
-      const zoneId = parseInt(document.getElementById('scheduleZone').value);
       const time = document.getElementById('scheduleTime').value;
       const duration = parseInt(document.getElementById('scheduleDuration').value);
       const days = Array.from(document.querySelectorAll('#daysPicker .day-chip.selected')).map(c => c.dataset.day);
-      this.schedules[index] = { zoneId, time, duration, days };
+      this.schedules[index] = { zoneId: 1, time, duration, days };
       this.saveSchedules();
       this.renderSchedules();
       this.renderDashboard();
@@ -2425,46 +2206,6 @@ const APP = {
 
       <div class="divider" style="margin:20px 0"></div>
 
-      <div class="section-header" style="margin-top:12px">
-        <h2>Zonas (${this.zones.length})</h2>
-        <button class="btn btn-sm btn-primary" id="addZoneSettingsBtn">+ Nova</button>
-      </div>
-
-      <div id="settingsZoneForm" style="display:none;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-bottom:12px" class="zone-card">
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-          <div style="flex:1;min-width:120px">
-            <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Nome</label>
-            <input id="settingsZoneName" placeholder="ex: Relvado" style="width:100%">
-          </div>
-          <div style="width:80px">
-            <label style="font-size:0.72rem;color:var(--text-tertiary);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Pino</label>
-            <input id="settingsZonePin" type="number" min="0" max="20" value="2" style="width:100%">
-          </div>
-          <button class="btn btn-primary btn-sm" id="saveSettingsZone" style="height:42px">OK</button>
-          <button class="btn btn-ghost btn-sm" id="cancelSettingsZone" style="height:42px">Cancelar</button>
-        </div>
-      </div>
-
-      <div id="settingsZoneList" style="display:flex;flex-direction:column;gap:8px">
-        ${this.zones.length === 0
-          ? '<p class="empty-state" style="padding:24px"><span class="empty-icon">&#128167;</span>Nenhuma zona. Clica em "+ Nova"</p>'
-          : this.zones.map(z => `
-            <div class="settings-zone-item" data-zone="${z.id}" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <span style="font-weight:600;font-size:0.9rem">${z.name}</span>
-                <span style="font-size:0.78rem;color:var(--text-tertiary);margin-left:8px">Pino ${z.pin}</span>
-              </div>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-outline btn-sm edit-settings-zone" data-zone="${z.id}" data-name="${z.name.replace(/"/g,'&quot;')}" data-pin="${z.pin}">Editar</button>
-                <button class="btn btn-ghost btn-sm delete-settings-zone" data-zone="${z.id}">&#10005;</button>
-              </div>
-            </div>
-          `).join('')
-        }
-      </div>
-
-      <div class="divider" style="margin:20px 0"></div>
-
       <div class="section-header">
         <h2>Dados</h2>
       </div>
@@ -2482,60 +2223,6 @@ const APP = {
   },
 
   _bindSettingsEvents() {
-    const addBtn = document.getElementById('addZoneSettingsBtn');
-    const form = document.getElementById('settingsZoneForm');
-    const saveSettingsHandler = () => {
-      const name = document.getElementById('settingsZoneName').value.trim();
-      const pin = document.getElementById('settingsZonePin').value;
-      if (!name) { this.showToast('Insere um nome para a zona'); return; }
-      this.addZone(name, pin);
-      this.renderSettings();
-    };
-
-    if (addBtn && form) {
-      addBtn.onclick = () => {
-        form.style.display = 'block'; addBtn.style.display = 'none';
-        document.getElementById('settingsZoneName').value = '';
-        document.getElementById('settingsZonePin').value = '2';
-        const save = document.getElementById('saveSettingsZone');
-        if (save) { save.textContent = 'OK'; save.onclick = saveSettingsHandler; }
-      };
-    }
-
-    const cancelBtn = document.getElementById('cancelSettingsZone');
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        form.style.display = 'none'; addBtn.style.display = '';
-        document.getElementById('settingsZoneName').value = '';
-        document.getElementById('settingsZonePin').value = '2';
-        const save = document.getElementById('saveSettingsZone');
-        if (save) { save.textContent = 'OK'; save.onclick = saveSettingsHandler; }
-      };
-    }
-
-    const saveBtn = document.getElementById('saveSettingsZone');
-    if (saveBtn) saveBtn.onclick = saveSettingsHandler;
-
-    // Edit zone (delegated)
-    document.getElementById('settingsZoneList').addEventListener('click', (e) => {
-      const zoneId = parseInt(e.target.dataset.zone);
-      if (isNaN(zoneId)) return;
-      if (e.target.classList.contains('delete-settings-zone')) {
-        if (confirm('Apagar esta zona?')) {
-          this.deleteZone(zoneId);
-          this.renderSettings();
-        }
-      } else if (e.target.classList.contains('edit-settings-zone')) {
-        const name = e.target.dataset.name;
-        const pin = e.target.dataset.pin;
-        document.getElementById('settingsZoneName').value = name;
-        document.getElementById('settingsZonePin').value = pin;
-        form.style.display = 'block'; addBtn.style.display = 'none';
-        const save = document.getElementById('saveSettingsZone');
-        if (save) { save.textContent = 'Atualizar'; save.onclick = () => { this.updateZone(zoneId, document.getElementById('settingsZoneName').value.trim(), document.getElementById('settingsZonePin').value); this.renderSettings(); }; }
-      }
-    });
-
     // Notification toggle
     document.getElementById('notifToggle').addEventListener('change', (e) => {
       this.notifEnabled = e.target.checked;

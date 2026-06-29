@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
   <link rel="stylesheet" href="css/splash.css?v=7">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -117,15 +117,6 @@
       </div>
     </section>
 
-    <!-- Zones -->
-    <section class="zones-section">
-      <div class="section-header">
-        <h2>Zonas</h2>
-        <span id="activeZonesCount" class="badge">0 ativos</span>
-      </div>
-      <div class="zones-grid" id="zonesGrid"></div>
-    </section>
-
     <!-- Schedule + Weather -->
     <section class="schedule-section">
       <div id="weatherInline" class="weather-inline"></div>
@@ -160,15 +151,11 @@
       </div>
     </section>
 
-    <button id="stopAllBtn" class="btn btn-danger btn-block btn-lg">&#9208; PARAR TODOS OS ASPERSORES</button>
   </main>
 
   <nav class="bottom-nav">
     <button class="nav-btn active" data-tab="dashboard">
       <span class="nav-icon">&#127968;</span> Inicio
-    </button>
-    <button class="nav-btn" data-tab="zones">
-      <span class="nav-icon">&#128167;</span> Zonas
     </button>
     <button class="nav-btn" data-tab="schedule">
       <span class="nav-icon">&#128339;</span> Horarios
@@ -206,8 +193,6 @@
   <div class="schedule-modal" id="scheduleModal">
     <div class="modal-content">
       <h3>Novo Horario</h3>
-      <label>Zona</label>
-      <select id="scheduleZone"></select>
       <label>Hora de Inicio</label>
       <input type="time" id="scheduleTime">
       <label>Duracao (minutos)</label>
