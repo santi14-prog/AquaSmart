@@ -1,20 +1,67 @@
 /*
  * AquaSmart - ESP8266 Single Pump + Web Server
+ * =============================================
  *
  * Serve o site (HTML/CSS/JS) e a API para controlar a bomba.
  * Nao precisa de internet — o ESP cria a rede WiFi e serve tudo.
  *
- * Hardware:
- *   GPIO5 (D1) -> Relay -> Bomba de agua
- *   A0        -> Sensor humidade solo
  *
- * WiFi: SSID=Sprinkler_System, Pass=12345678, IP=192.168.4.1
+ * --- INSTALACAO ---
  *
- * Endpoints API:
- *   GET /on?duration=300  -> Liga bomba N segundos
+ * 1. Abre o Arduino IDE
+ * 2. Ficheiro -> Preferencias -> URLs Adicionais:
+ *    http://arduino.esp8266.com/stable/package_esp8266com_index.json
+ * 3. Ferramentas -> Placa -> Gestor de Placas -> procura "esp8266" e instala
+ * 4. Seleciona: Ferramentas -> Placa -> NodeMCU 1.0 (ESP-12E)
+ * 5. Abre este ficheiro (.ino) no Arduino IDE
+ * 6. Liga o ESP por USB, escolhe a porta em Ferramentas -> Porto
+ * 7. Faz Upload do sketch (seta ->)
+ * 8. (so uma vez) Instala o plugin "ESP8266 LittleFS Upload" em:
+ *    https://github.com/earlephilhower/arduino-esp8266littlefs-plugin
+ * 9. Executa o copiar_para_esp.bat (cria pasta data/)
+ * 10. Arduino IDE -> Ferramentas -> ESP8266 LittleFS Data Upload
+ *
+ *
+ * --- LIGACOES ---
+ *
+ *   GPIO5 (D1)  -> Relay (sinal IN) -> Bomba de agua
+ *   A0          -> Sensor humidade solo (FC-28 ou similar)
+ *   VIN         -> 5V (fonte externa se a bomba consumir muito)
+ *   GND         -> GND comum (ESP + rele + sensor)
+ *
+ *   Nota: a maioria dos modulos rele dispara em LOW.
+ *         Se o teu rele dispara em HIGH, muda RELAY_ON para HIGH.
+ *
+ *
+ * --- USAR ---
+ *
+ * 1. Liga o ESP a corrente (USB ou fonte 5V)
+ * 2. No telemovel/PC, procura a rede WiFi: Sprinkler_System
+ * 3. Password: 12345678
+ * 4. Abre o browser e vai a http://192.168.4.1
+ * 5. Login: aquasmart2026
+ * 6. Clica "BOMBA DESLIGADA" para ligar
+ *
+ *
+ * --- ENDPOINTS API ---
+ *
+ *   GET /on?duration=300  -> Liga bomba durante N segundos
  *   GET /off              -> Desliga bomba
  *   GET /status           -> {"bomba":1,"timer":120}
  *   GET /sensor           -> {"humidade":65}
+ *
+ *
+ * --- PREPARAR O CIRCUITO ---
+ *
+ *   ESP8266     Rele        Bomba      Sensor
+ *   --------   --------   --------   --------
+ *   D1 (GPIO5) -> IN
+ *   VIN        -> VCC       VCC+
+ *   GND        -> GND       VCC-      GND
+ *   A0                                            -> A0 (sinal)
+ *   3.3V                                          -> VCC (se 3.3V)
+ *
+ *   Se o sensor for 5V, liga o VCC ao VIN do ESP (5V).
  */
 
 #include <ESP8266WiFi.h>
