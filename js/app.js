@@ -39,7 +39,7 @@ const APP = {
   notifEnabled: true,
   _notifications: [],
   sensorData: { moisture: null, timestamp: null },
-  pumpPaused: false,
+  pumpPaused: true,
 
   // === Init ===
   init() {
@@ -1498,15 +1498,15 @@ const APP = {
     const pumpBtn = document.getElementById('pumpToggleBtn');
     if (pumpBtn) {
       if (this.pumpPaused) {
-        pumpBtn.className = 'pump-btn paused';
+        pumpBtn.className = 'pump-btn off';
         pumpBtn.querySelector('.pump-icon').textContent = '▶️';
-        pumpBtn.querySelector('.pump-label').textContent = 'BOMBA EM PAUSA';
-        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para ativar';
+        pumpBtn.querySelector('.pump-label').textContent = 'BOMBA DESLIGADA';
+        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para ligar';
       } else {
         pumpBtn.className = 'pump-btn on';
         pumpBtn.querySelector('.pump-icon').textContent = '⏸️';
         pumpBtn.querySelector('.pump-label').textContent = 'BOMBA LIGADA';
-        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para pausar';
+        pumpBtn.querySelector('.pump-sublabel').textContent = 'Tocar para desligar';
       }
     }
 
