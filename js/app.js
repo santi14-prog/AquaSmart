@@ -126,6 +126,22 @@ const APP = {
     } else {
       this.fetchWeather();
     }
+
+    // Auto-conectar ao ESP se carregado diretamente dele
+    const host = window.location.hostname;
+    if (host.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      LOG('Detetado ESP em', host);
+      setTimeout(() => {
+        WifiHandler.connect(host).then(() => {
+          this.currentConnection = WifiHandler;
+          this.updateConnectionUI();
+          this.showToast('Conectado ao ESP');
+          LOG('Auto-conectado ao ESP:', host);
+        }).catch(() => {
+          LOG('Auto-conexao falhou (ESP pode estar a reiniciar)');
+        });
+      }, 500);
+    }
   },
 
   _migrateOldData() {

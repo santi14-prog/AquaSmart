@@ -1,27 +1,25 @@
 /*
- * AquaSmart - ESP8266 Single Pump Controller
+ * AquaSmart - ESP8266 Single Pump + Web Server
+ *
+ * Serve o site (HTML/CSS/JS) e a API para controlar a bomba.
+ * Nao precisa de internet — o ESP cria a rede WiFi e serve tudo.
  *
  * Hardware:
- *   - ESP8266 (NodeMCU/Wemos D1)
- *   - 1 relay module -> water pump
- *   - Soil moisture sensor on A0
+ *   GPIO5 (D1) -> Relay -> Bomba de agua
+ *   A0        -> Sensor humidade solo
  *
- * Wiring:
- *   GPIO5 (D1) -> Relay (pump)
- *   A0        -> Soil moisture sensor
- *   VIN/GND   -> 5V power supply
+ * WiFi: SSID=Sprinkler_System, Pass=12345678, IP=192.168.4.1
  *
- * WiFi AP: SSID=Sprinkler_System, Pass=12345678, IP=192.168.4.1
- *
- * Endpoints:
- *   GET /on?duration=300  -> Liga bomba durante N segundos
+ * Endpoints API:
+ *   GET /on?duration=300  -> Liga bomba N segundos
  *   GET /off              -> Desliga bomba
- *   GET /status           -> JSON: {"bomba":1,"timer":120}
- *   GET /sensor           -> JSON: {"humidade":65}
+ *   GET /status           -> {"bomba":1,"timer":120}
+ *   GET /sensor           -> {"humidade":65}
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <LittleFS.h>
 
 // ---- WiFi ----
 const char* WIFI_SSID = "Sprinkler_System";
@@ -30,7 +28,7 @@ const char* WIFI_PASS = "12345678";
 // ---- Pinos ----
 const int RELAY_PIN = 5;     // D1 (GPIO5)
 const int SOIL_PIN = A0;
-const bool RELAY_ON = LOW;   // relay modules trigger on LOW
+const bool RELAY_ON = LOW;
 const bool RELAY_OFF = HIGH;
 
 // ---- Estado ----
@@ -40,34 +38,50 @@ unsigned long desligarEm = 0;
 // ---- Servidor ----
 ESP8266WebServer server(80);
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, RELAY_OFF);
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(WIFI_SSID, WIFI_PASS);
-  Serial.println("WiFi AP iniciado: " + String(WIFI_SSID));
-  Serial.println("IP: " + WiFi.softAPIP().toString());
-
-  server.enableCORS(true);
-  server.on("/on", handleOn);
-  server.on("/off", handleOff);
-  server.on("/status", handleStatus);
-  server.on("/sensor", handleSensor);
-  server.begin();
-  Serial.println("Servidor HTTP pronto");
+// ---- MIME Types ----
+String getMime(String path) {
+  if (path.endsWith(".html")) return "text/html";
+  if (path.endsWith(".css")) return "text/css";
+  if (path.endsWith(".js")) return "application/javascript";
+  if (path.endsWith(".json")) return "application/json";
+  if (path.endsWith(".png")) return "image/png";
+  if (path.endsWith(".ico")) return "image/x-icon";
+  if (path.endsWith(".svg")) return "image/svg+xml";
+  return "text/plain";
 }
 
-void loop() {
-  server.handleClient();
+// ---- Serve ficheiros do LittleFS ----
+void handleStatic() {
+  String path = server.uri();
+  if (path == "/") path = "/index.html";
 
-  if (bombaLigada && desligarEm > 0 && millis() >= desligarEm) {
-    digitalWrite(RELAY_PIN, RELAY_OFF);
-    bombaLigada = false;
-    desligarEm = 0;
-    Serial.println("Bomba DESLIGADA (fim do timer)");
+  // Seguranca: evitar path traversal
+  if (path.indexOf("..") >= 0) {
+    server.send(403, "text/plain", "Forbidden");
+    return;
   }
+
+  if (!LittleFS.exists(path)) {
+    server.send(404, "text/plain", "404");
+    return;
+  }
+
+  File f = LittleFS.open(path, "r");
+  if (!f) {
+    server.send(404, "text/plain", "404");
+    return;
+  }
+
+  if (path.endsWith(".html") || path.endsWith(".js") || path.endsWith(".css")) {
+    server.streamFile(f, getMime(path));
+  } else {
+    // Binary files (PNG, ICO) - send in chunks
+    size_t sent = server.streamFile(f, getMime(path));
+    if (sent != f.size()) {
+      Serial.println("Erro ao enviar: " + path);
+    }
+  }
+  f.close();
 }
 
 // ---- Liga bomba ----
@@ -76,14 +90,11 @@ void handleOn() {
 
   digitalWrite(RELAY_PIN, RELAY_ON);
   bombaLigada = true;
-  if (duracao > 0) {
-    desligarEm = millis() + (duracao * 1000UL);
-  } else {
-    desligarEm = 0;
-  }
+  desligarEm = (duracao > 0) ? millis() + (duracao * 1000UL) : 0;
 
-  Serial.println("Bomba LIGADA (" + String(duracao) + "s)");
-  server.send(200, "application/json", "{\"ok\":true,\"bomba\":1,\"duracao\":" + String(duracao) + "}");
+  Serial.printf("Bomba LIGADA (%ds)\n", duracao);
+  server.send(200, "application/json",
+    "{\"ok\":true,\"bomba\":1,\"duracao\":" + String(duracao) + "}");
 }
 
 // ---- Desliga bomba ----
@@ -100,16 +111,65 @@ void handleStatus() {
   unsigned long restante = 0;
   if (bombaLigada && desligarEm > 0) {
     long r = (desligarEm - millis()) / 1000;
-    restante = r > 0 ? r : 0;
+    restante = (r > 0) ? r : 0;
   }
-  String json = "{\"bomba\":" + String(bombaLigada ? 1 : 0) + ",\"timer\":" + String(restante) + "}";
-  server.send(200, "application/json", json);
+  server.send(200, "application/json",
+    "{\"bomba\":" + String(bombaLigada ? 1 : 0) +
+    ",\"timer\":" + String(restante) + "}");
 }
 
 // ---- Sensor humidade ----
 void handleSensor() {
   int leitura = analogRead(SOIL_PIN);
   int humidade = map(leitura, 0, 1023, 100, 0);
-  String json = "{\"humidade\":" + String(humidade) + "}";
-  server.send(200, "application/json", json);
+  server.send(200, "application/json",
+    "{\"humidade\":" + String(humidade) + "}");
+}
+
+// ---- Inicializacao ----
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, RELAY_OFF);
+
+  // Iniciar LittleFS
+  if (!LittleFS.begin()) {
+    Serial.println("ERRO: LittleFS nao montou!");
+  } else {
+    Serial.println("LittleFS OK");
+  }
+
+  // WiFi Access Point
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(WIFI_SSID, WIFI_PASS);
+  Serial.println("WiFi: " + String(WIFI_SSID));
+  Serial.println("IP: " + WiFi.softAPIP().toString());
+
+  // API endpoints (prioridade sobre static)
+  server.on("/on", handleOn);
+  server.on("/off", handleOff);
+  server.on("/status", handleStatus);
+  server.on("/sensor", handleSensor);
+
+  // Static files (fallback)
+  server.onNotFound(handleStatic);
+
+  server.enableCORS(true);
+  server.begin();
+  Serial.println("Servidor pronto!");
+  Serial.println("Abre http://192.168.4.1 no browser");
+}
+
+// ---- Loop ----
+void loop() {
+  server.handleClient();
+
+  if (bombaLigada && desligarEm > 0 && millis() >= desligarEm) {
+    digitalWrite(RELAY_PIN, RELAY_OFF);
+    bombaLigada = false;
+    desligarEm = 0;
+    Serial.println("Bomba DESLIGADA (fim do timer)");
+  }
 }
