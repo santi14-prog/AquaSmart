@@ -1,9 +1,9 @@
-// WiFi handler - communicates with ESP8266/ESP32 via HTTP REST API
+// WiFi handler - communicates with ESP8266 simplified (bomba unica)
 // ESP endpoints:
-//   GET  /on?pin=2&duration=300
-//   GET  /off?pin=2
-//   GET  /alloff
-//   GET  /status  -> returns JSON: {"pins":[0,1,0,0],"timers":[0,300,0,0]}
+//   GET  /on?duration=300
+//   GET  /off
+//   GET  /status  -> JSON: {"bomba":1,"timer":120}
+//   GET  /sensor  -> JSON: {"humidade":65}
 
 let wifiBaseUrl = '';
 let wifiPollInterval = null;
@@ -11,7 +11,7 @@ let savedIp = '';
 
 const WifiHandler = {
   isSupported() {
-    return true; // works everywhere
+    return true;
   },
 
   async connect(ip) {
@@ -33,7 +33,6 @@ const WifiHandler = {
       wifiBaseUrl = base;
       savedIp = addr;
 
-      // Start polling for status updates
       this._startPolling();
 
       window.dispatchEvent(new CustomEvent('device-connected', {
@@ -77,12 +76,11 @@ const WifiHandler = {
       const parts = data.split(':');
       let url = '';
 
-      if (data === 'ALLOFF') {
-        url = `${wifiBaseUrl}/alloff`;
-      } else if (parts[0] === 'ON' && parts.length === 3) {
-        url = `${wifiBaseUrl}/on?pin=${parts[1]}&duration=${parts[2]}`;
-      } else if (parts[0] === 'OFF' && parts.length === 2) {
-        url = `${wifiBaseUrl}/off?pin=${parts[1]}`;
+      if (data === 'ALLOFF' || parts[0] === 'OFF') {
+        url = `${wifiBaseUrl}/off`;
+      } else if (parts[0] === 'ON' && parts.length >= 2) {
+        const duration = parts[2] || 300;
+        url = `${wifiBaseUrl}/on?duration=${duration}`;
       } else {
         return false;
       }
@@ -95,6 +93,16 @@ const WifiHandler = {
     } catch (err) {
       console.error('WiFi send error:', err);
       return false;
+    }
+  },
+
+  async fetchSensor() {
+    if (!wifiBaseUrl) return null;
+    try {
+      const resp = await fetch(`${wifiBaseUrl}/sensor`, { mode: 'cors' });
+      return await resp.json();
+    } catch (_) {
+      return null;
     }
   },
 

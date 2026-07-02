@@ -1924,20 +1924,33 @@ const APP = {
     window.addEventListener('arduino-data', (e) => {
       const data = e.detail.data;
       LOG('Dados do Arduino:', data);
+      if (typeof data === 'string' && data.startsWith('{')) {
+        try {
+          const json = JSON.parse(data);
+          if (json.bomba !== undefined) {
+            if (json.bomba === 0 && this.zoneTimers[1] > 0) {
+              this.activeZones.delete(1);
+              this.zoneTimers[1] = 0;
+              this.addHistory('Bomba', 'DESLIGADO (ESP)', 0);
+              this.renderDashboard();
+              this.updateActiveCount();
+            }
+          }
+          if (json.humidade !== undefined) {
+            this.handleSensorData(json.humidade);
+          }
+        } catch (_) {}
+        return;
+      }
       if (data.startsWith('DONE:')) {
-        const pin = data.split(':')[1];
-        const zone = this.zones.find(z => String(z.pin) === pin);
-        if (zone) {
-          this.activeZones.delete(zone.id);
-          this.zoneTimers[zone.id] = 0;
-          this.addHistory(zone.name, 'DESLIGADO (hardware)', 0);
-          this.addNotification(`${zone.name}`, 'Hardware terminou rega', 'info');
-          this.renderZones();
-          this.renderDashboard();
-          this.updateActiveCount();
-          this.showToast(`${zone.name} terminou`);
-          this.notify('AquaSmart', `${zone.name} terminou a rega`);
-        }
+        this.activeZones.delete(1);
+        this.zoneTimers[1] = 0;
+        this.addHistory('Bomba', 'DESLIGADO (hardware)', 0);
+        this.addNotification('Bomba', 'Hardware terminou rega', 'info');
+        this.renderDashboard();
+        this.updateActiveCount();
+        this.showToast('Bomba terminou');
+        this.notify('AquaSmart', 'Bomba terminou a rega');
       }
       if (data.startsWith('SENSOR:')) {
         const moisture = parseInt(data.split(':')[1]);
