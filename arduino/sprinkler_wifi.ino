@@ -26,7 +26,7 @@
  *
  *   GPIO14 (D5)  -> Relay (sinal IN) -> Bomba de agua
  *   A0           -> Sensor humidade solo (FC-28 ou similar)
- *   VIN          -> 5V (fonte externa se a bomba consumir muito)
+ *   VU (5V USB)  -> alimenta o modulo rele (5V)
  *   GND          -> GND comum (ESP + rele + sensor)
  *
  *   Nota: a maioria dos modulos rele dispara em LOW.
@@ -56,12 +56,13 @@
  *   ESP8266     Rele        Bomba      Sensor
  *   --------   --------   --------   --------
  *   D5 (GPIO14) -> IN
- *   VIN         -> VCC       VCC+
+ *   VU (5V USB) -> VCC       VCC+
  *   GND         -> GND       VCC-      GND
  *   A0                                             -> A0 (sinal)
  *   3.3V                                           -> VCC (se 3.3V)
  *
- *   Se o sensor for 5V, liga o VCC ao VIN do ESP (5V).
+ *   Importante: usa o pino VU (nao VIN) para alimentar o rele a 5V.
+ *   O VIN so funciona se estiveres a usar fonte externa.
  */
 
 #include <ESP8266WiFi.h>
