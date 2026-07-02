@@ -1625,7 +1625,7 @@ body.light .weather-recommendation { background: linear-gradient(135deg, var(--b
 }
 
 .login-logo {
-  width: 160px;
+  width: 220px;
   height: auto;
   margin-bottom: 32px;
   filter: drop-shadow(0 4px 16px rgba(6,182,212,0.2));
