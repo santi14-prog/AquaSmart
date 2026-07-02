@@ -1,5 +1,5 @@
 // AquaSmart Service Worker - PWA Caching + Offline Support
-const CACHE = 'aquasmart-v3';
+const CACHE = 'aquasmart-v4';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

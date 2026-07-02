@@ -685,8 +685,8 @@ const APP = {
   },
 
   loadPumpState() {
-    const saved = localStorage.getItem('aquasmart_pump');
-    if (saved !== null) this.pumpPaused = saved === 'true';
+    localStorage.removeItem('aquasmart_pump');
+    this.pumpPaused = true;
   },
 
   savePumpState() {
