@@ -24,10 +24,10 @@
  *
  * --- LIGACOES ---
  *
- *   GPIO5 (D1)  -> Relay (sinal IN) -> Bomba de agua
- *   A0          -> Sensor humidade solo (FC-28 ou similar)
- *   VIN         -> 5V (fonte externa se a bomba consumir muito)
- *   GND         -> GND comum (ESP + rele + sensor)
+ *   GPIO14 (D5)  -> Relay (sinal IN) -> Bomba de agua
+ *   A0           -> Sensor humidade solo (FC-28 ou similar)
+ *   VIN          -> 5V (fonte externa se a bomba consumir muito)
+ *   GND          -> GND comum (ESP + rele + sensor)
  *
  *   Nota: a maioria dos modulos rele dispara em LOW.
  *         Se o teu rele dispara em HIGH, muda RELAY_ON para HIGH.
@@ -36,8 +36,8 @@
  * --- USAR ---
  *
  * 1. Liga o ESP a corrente (USB ou fonte 5V)
- * 2. No telemovel/PC, procura a rede WiFi: Sprinkler_System
- * 3. Password: 12345678
+ * 2. No telemovel/PC, procura a rede WiFi: ESPESPESPESP
+ * 3. Password: 123456789
  * 4. Abre o browser e vai a http://192.168.4.1
  * 5. Login: aquasmart2026
  * 6. Clica "BOMBA DESLIGADA" para ligar
@@ -55,11 +55,11 @@
  *
  *   ESP8266     Rele        Bomba      Sensor
  *   --------   --------   --------   --------
- *   D1 (GPIO5) -> IN
- *   VIN        -> VCC       VCC+
- *   GND        -> GND       VCC-      GND
- *   A0                                            -> A0 (sinal)
- *   3.3V                                          -> VCC (se 3.3V)
+ *   D5 (GPIO14) -> IN
+ *   VIN         -> VCC       VCC+
+ *   GND         -> GND       VCC-      GND
+ *   A0                                             -> A0 (sinal)
+ *   3.3V                                           -> VCC (se 3.3V)
  *
  *   Se o sensor for 5V, liga o VCC ao VIN do ESP (5V).
  */
@@ -69,11 +69,11 @@
 #include <LittleFS.h>
 
 // ---- WiFi ----
-const char* WIFI_SSID = "Sprinkler_System";
-const char* WIFI_PASS = "12345678";
+const char* WIFI_SSID = "ESPESPESPESP";
+const char* WIFI_PASS = "123456789";
 
 // ---- Pinos ----
-const int RELAY_PIN = 5;     // D1 (GPIO5)
+const int RELAY_PIN = 14;    // D5 (GPIO14)
 const int SOIL_PIN = A0;
 const bool RELAY_ON = LOW;
 const bool RELAY_OFF = HIGH;
@@ -169,6 +169,8 @@ void handleStatus() {
 void handleSensor() {
   int leitura = analogRead(SOIL_PIN);
   int humidade = map(leitura, 0, 1023, 100, 0);
+  if (humidade > 100) humidade = 100;
+  if (humidade < 0) humidade = 0;
   server.send(200, "application/json",
     "{\"humidade\":" + String(humidade) + "}");
 }
